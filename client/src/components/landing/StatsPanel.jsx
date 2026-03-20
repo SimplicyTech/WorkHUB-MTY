@@ -1,0 +1,67 @@
+const stats = [
+  { label: 'escritorios_libres', value: '42', color: 'text-accent' },
+  { label: 'estacionamiento', value: '18', color: 'text-primary' },
+  { label: 'ocupación_hoy', value: '73%', color: 'text-white' },
+]
+
+const bars = [
+  { label: 'piso_1', width: '60%', color: 'bg-accent' },
+  { label: 'piso_2', width: '40%', color: 'bg-primary' },
+  { label: 'piso_3', width: '70%', color: 'bg-accent' },
+]
+
+export default function StatsPanel() {
+  return (
+    <div className="bg-surface-card rounded-2xl p-6 flex flex-col gap-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[11px] text-text-muted font-semibold">
+          // panel_de_ocupación
+        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+          <span className="font-mono text-[9px] text-accent font-semibold">
+            EN VIVO
+          </span>
+        </div>
+      </div>
+
+      {/* Stats Row */}
+      <div className="flex gap-3">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="flex-1 bg-surface-badge rounded-2xl p-4 flex flex-col gap-1"
+          >
+            <span className="font-mono text-[9px] text-text-muted">
+              {stat.label}
+            </span>
+            <span className={`font-heading text-4xl font-bold ${stat.color}`}>
+              {stat.value}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Bar Chart */}
+      <div className="flex flex-col gap-2">
+        <span className="font-mono text-[9px] text-text-muted">
+          // distribución_por_piso
+        </span>
+        {bars.map((bar) => (
+          <div key={bar.label} className="flex items-center gap-2">
+            <span className="font-mono text-[9px] text-text-muted w-10">
+              {bar.label}
+            </span>
+            <div className="flex-1 bg-bar-bg rounded h-2">
+              <div
+                className={`${bar.color} rounded h-2`}
+                style={{ width: bar.width }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}

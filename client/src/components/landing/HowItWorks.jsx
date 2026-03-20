@@ -1,0 +1,56 @@
+const steps = [
+  {
+    num: '01',
+    numColor: 'text-primary',
+    title: 'BUSCA TU ESPACIO',
+    desc: 'Abre WorkHub MTY y selecciona fecha, piso y zona. Ve la disponibilidad en tiempo real.',
+  },
+  {
+    num: '02',
+    numColor: 'text-accent',
+    title: 'RESERVA Y CONFIRMA',
+    desc: 'Elige tu escritorio o cajón de estacionamiento preferido y confirma con un clic.',
+  },
+  {
+    num: '03',
+    numColor: 'text-primary',
+    title: 'CHECK-IN CON QR',
+    desc: 'Al llegar al ATC, escanea el QR en tu escritorio. Si no confirmas en 15 min, el espacio se libera.',
+  },
+]
+
+export default function HowItWorks() {
+  return (
+    <section className="flex flex-col items-center gap-12 px-12 py-20">
+      {/* Header */}
+      <div className="flex flex-col items-center gap-3">
+        <span className="font-mono text-[11px] text-accent font-semibold">
+          // tu_flujo_diario
+        </span>
+        <h2 className="font-heading text-4xl font-bold text-white text-center">
+          ASÍ DE FÁCIL ES USARLO
+        </h2>
+      </div>
+
+      {/* Steps */}
+      <div className="flex gap-6 w-full">
+        {steps.map((step) => (
+          <div
+            key={step.num}
+            className="flex-1 bg-surface-card rounded-2xl p-7 flex flex-col items-center gap-4"
+          >
+            <span className={`font-heading text-5xl font-bold ${step.numColor}`}>
+              {step.num}
+            </span>
+            <span className="font-heading text-lg font-semibold text-white text-center">
+              {step.title}
+            </span>
+            <p className="font-mono text-xs text-text-muted text-center leading-relaxed">
+              {step.desc}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
