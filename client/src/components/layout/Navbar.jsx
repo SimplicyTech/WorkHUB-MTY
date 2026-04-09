@@ -1,17 +1,17 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
 const navLinks = [
-  { label: 'mi_espacio', to: '/' },
-  { label: 'mapa_de_pisos', to: '/' },
-  { label: 'mis_reservaciones', to: '/' },
-  { label: 'ayuda', to: '/' },
+  { label: 'Inicio', to: '/' },
+  { label: 'Reservar', to: '/reservar' },
+  { label: 'Mis Reservaciones', to: '/mis-reservaciones' },
 ]
 
 export default function Navbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const dropdownRef = useRef(null)
@@ -39,18 +39,24 @@ export default function Navbar() {
     <nav className="bg-surface relative z-40">
       {/* Barra principal */}
       <div className="flex items-center justify-between px-5 md:px-12 py-4">
-        <Link to="/" className="flex items-center gap-2.5">
+        <Link to="/" className="flex items-center gap-2">
           <span className="text-primary text-2xl">›</span>
-          <span className="text-white text-xl font-normal">accenture</span>
+          <span className="text-white text-base">accenture</span>
+          <span className="font-mono text-sm text-text-muted">//</span>
+          <span className="font-heading text-sm text-primary font-semibold">WORKHUB MTY</span>
         </Link>
 
         {/* Links desktop */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-6">
           {navLinks.map((link) => (
             <Link
               key={link.label}
               to={link.to}
-              className="text-text-muted font-mono text-[13px] hover:text-white transition-colors"
+              className={`font-mono text-xs transition-colors ${
+                location.pathname === link.to
+                  ? 'text-primary font-semibold'
+                  : 'text-text-muted hover:text-white'
+              }`}
             >
               {link.label}
             </Link>
@@ -152,7 +158,11 @@ export default function Navbar() {
               key={link.label}
               to={link.to}
               onClick={() => setMenuOpen(false)}
-              className="font-mono text-[13px] text-text-muted hover:text-white transition-colors py-3 border-b border-surface-badge last:border-0"
+              className={`font-mono text-[13px] py-3 border-b border-surface-badge last:border-0 transition-colors ${
+                location.pathname === link.to
+                  ? 'text-primary font-semibold'
+                  : 'text-text-muted hover:text-white'
+              }`}
             >
               {link.label}
             </Link>

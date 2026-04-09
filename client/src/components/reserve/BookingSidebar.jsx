@@ -40,7 +40,7 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
                   : 'bg-surface-badge text-text-muted hover:bg-surface-badge/80'
               }`}
             >
-              👤 Para mí
+              Para mí
             </button>
             <button
               onClick={() => setReserveFor('visitor')}
@@ -50,7 +50,7 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
                   : 'bg-surface-badge text-text-muted hover:bg-surface-badge/80'
               }`}
             >
-              👥 Para un visitante
+              Para un visitante
             </button>
           </div>
         </div>
@@ -136,7 +136,7 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
                   : 'bg-surface-badge text-text-muted hover:bg-surface-badge/80'
               }`}
             >
-              🖥 Escritorio
+              Escritorio
             </button>
             <button
               onClick={() => setSpaceType('parking')}
@@ -146,7 +146,7 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
                   : 'bg-surface-badge text-text-muted hover:bg-surface-badge/80'
               }`}
             >
-              🚗 Estacionamiento
+              Estacionamiento
             </button>
           </div>
         </div>
@@ -189,11 +189,11 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
             </span>
           </div>
           <p className="font-mono text-[8px] text-white leading-[1.4]">
-            Basado en tu historial, D-312 tiene 92% de disponibilidad a esta hora
+            Basado en tu historial, IC3015 tiene 92% de disponibilidad a esta hora
             y coincide con tu zona preferida.
           </p>
           <button className="h-[26px] rounded-md bg-accent font-mono text-[10px] text-surface font-semibold cursor-pointer border-none hover:bg-accent/80 transition-colors">
-            Seleccionar D-312
+            Seleccionar IC3015
           </button>
         </div>
       </div>
@@ -209,7 +209,7 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
               : 'bg-primary/50 text-white/50 cursor-not-allowed'
           }`}
         >
-          📋 RESERVAR ESPACIO
+          RESERVAR ESPACIO
         </button>
         <p className="font-mono text-[9px] text-text-muted text-center">
           {selectedDesk
