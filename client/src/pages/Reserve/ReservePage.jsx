@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import BookingSidebar from '../../components/reserve/BookingSidebar'
 import FloorMap from '../../components/reserve/FloorMap'
 import desks, { rooms } from '../../data/floorData'
 
 export default function ReservePage() {
+  const navigate = useNavigate()
   const [selectedDesk, setSelectedDesk] = useState(null)
   const [deskData, setDeskData] = useState(desks)
 
@@ -18,8 +20,8 @@ export default function ReservePage() {
         d.id === selectedDesk ? { ...d, status: 'occupied' } : d
       )
     )
-    alert(`Escritorio ${selectedDesk} reservado exitosamente`)
-    setSelectedDesk(null)
+    // Navigate to parking confirmation page
+    navigate('/estacionamiento', { state: { deskId: selectedDesk } })
   }
 
   return (
@@ -34,3 +36,4 @@ export default function ReservePage() {
     </div>
   )
 }
+
