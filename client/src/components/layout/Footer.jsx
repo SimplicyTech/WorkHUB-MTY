@@ -2,9 +2,9 @@ import stLogo from '../../assets/SimplicyTechLogoCompleto.png'
 
 export default function Footer() {
   return (
-    <footer className="bg-surface px-12 pt-10 pb-10">
+    <footer className="bg-surface px-5 md:px-12 pt-10 pb-10">
       <div className="h-px bg-surface-badge w-full mb-8" />
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <span className="font-mono text-[9px] text-text-muted">
           © 2026 Accenture — WorkHub MTY. ATC Monterrey. Uso interno.
         </span>

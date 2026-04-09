@@ -27,16 +27,16 @@ export default function StatsPanel() {
       </div>
 
       {/* Stats Row */}
-      <div className="flex gap-3">
+      <div className="flex gap-2 md:gap-3">
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className="flex-1 bg-surface-badge rounded-2xl p-4 flex flex-col gap-1"
+            className="flex-1 bg-surface-badge rounded-2xl p-3 md:p-4 flex flex-col gap-1"
           >
-            <span className="font-mono text-[9px] text-text-muted">
+            <span className="font-mono text-[8px] md:text-[9px] text-text-muted leading-tight">
               {stat.label}
             </span>
-            <span className={`font-heading text-4xl font-bold ${stat.color}`}>
+            <span className={`font-heading text-3xl md:text-4xl font-bold ${stat.color}`}>
               {stat.value}
             </span>
           </div>
