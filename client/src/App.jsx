@@ -5,6 +5,8 @@ import AppLayout from './layouts/AppLayout'
 import LandingPage from './pages/Landing/LandingPage'
 import LoginPage from './pages/Login/LoginPage'
 import ReservePage from './pages/Reserve/ReservePage'
+import ParkingPage from './pages/Reserve/ParkingPage'
+import ConfirmationPage from './pages/Reserve/ConfirmationPage'
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
           </Route>
           <Route element={<AppLayout />}>
             <Route path="/reservar" element={<ReservePage />} />
+            <Route path="/estacionamiento" element={<ParkingPage />} />
+            <Route path="/confirmacion" element={<ConfirmationPage />} />
           </Route>
           <Route path="/login" element={<LoginPage />} />
         </Routes>
@@ -25,3 +29,4 @@ function App() {
 }
 
 export default App
+

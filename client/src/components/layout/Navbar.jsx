@@ -48,19 +48,27 @@ export default function Navbar() {
 
         {/* Links desktop */}
         <div className="hidden md:flex items-center gap-6">
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              to={link.to}
-              className={`font-mono text-xs transition-colors ${
-                location.pathname === link.to
-                  ? 'text-primary font-semibold'
-                  : 'text-text-muted hover:text-white'
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const isActive =
+              link.to === '/reservar'
+                ? ['/reservar', '/estacionamiento', '/confirmacion'].includes(
+                    location.pathname
+                  )
+                : location.pathname === link.to
+            return (
+              <Link
+                key={link.label}
+                to={link.to}
+                className={`font-mono text-xs transition-colors ${
+                  isActive
+                    ? 'text-primary font-semibold'
+                    : 'text-text-muted hover:text-white'
+                }`}
+              >
+                {link.label}
+              </Link>
+            )
+          })}
         </div>
 
         {/* Acciones desktop + hamburguesa mobile */}
