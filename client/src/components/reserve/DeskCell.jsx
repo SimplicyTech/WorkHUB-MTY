@@ -1,14 +1,15 @@
 const statusStyles = {
-  available: 'bg-accent/80 hover:bg-accent cursor-pointer',
-  occupied: 'bg-[#ff3246] cursor-not-allowed',
-  selected: 'bg-primary ring-2 ring-white cursor-pointer',
+  available: 'bg-accent/80 hover:bg-accent cursor-pointer text-black',
+  occupied: 'bg-[#ff3246] cursor-not-allowed text-white',
+  selected: 'bg-primary ring-2 ring-white cursor-pointer text-white',
 }
 
 export default function DeskCell({ id, status, onSelect }) {
   return (
     <button
       onClick={() => status !== 'occupied' && onSelect(id)}
-      className={`w-[52px] h-[28px] rounded text-[9px] font-mono font-semibold text-white border-none transition-all ${statusStyles[status]}`}
+      className={`w-[50px] h-[25px] rounded-sm font-mono font-bold border-none transition-all ${statusStyles[status]}`}
+      style={{ fontSize: 10 }}
       title={`${id} — ${status}`}
     >
       {id}
