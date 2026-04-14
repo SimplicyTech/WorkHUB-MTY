@@ -7,12 +7,16 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    const result = login(email, password)
+    setError('')
+    setSubmitting(true)
+    const result = await login(email, password)
+    setSubmitting(false)
     if (result.success) {
       navigate('/')
     } else {
@@ -99,9 +103,10 @@ export default function LoginPage() {
           {/* Submit */}
           <button
             type="submit"
-            className="bg-primary text-white font-heading text-base font-semibold h-[52px] rounded-lg flex items-center justify-center gap-2 hover:bg-primary-dark transition-colors cursor-pointer"
+            disabled={submitting}
+            className="bg-primary text-white font-heading text-base font-semibold h-[52px] rounded-lg flex items-center justify-center gap-2 hover:bg-primary-dark transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            ⚡ INICIAR SESIÓN
+            {submitting ? 'INGRESANDO...' : '⚡ INICIAR SESIÓN'}
           </button>
 
           <p className="font-mono text-[10px] text-text-muted text-center leading-relaxed">
