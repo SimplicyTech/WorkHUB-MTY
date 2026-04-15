@@ -7,7 +7,6 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
   const [exitTime, setExitTime] = useState('18:00')
   const [floor, setFloor] = useState('piso-3')
   const [reserveFor, setReserveFor] = useState('me')
-  const [spaceType, setSpaceType] = useState('desk')
 
   return (
     <div className="w-full lg:w-[360px] lg:shrink-0 bg-surface flex flex-col lg:h-full">
@@ -119,35 +118,6 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
               <option value="piso-3">Piso 3 — Área de Trabajo General</option>
             </select>
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none">▾</span>
-          </div>
-        </div>
-
-        {/* Tipo de espacio */}
-        <div className="flex flex-col gap-1.5">
-          <label className="font-mono text-[11px] text-white font-semibold">
-            tipo_de_espacio
-          </label>
-          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
-            <button
-              onClick={() => setSpaceType('desk')}
-              className={`flex-1 flex items-center justify-center gap-1.5 h-10 rounded-lg font-mono text-[11px] cursor-pointer border-none transition-colors ${
-                spaceType === 'desk'
-                  ? 'bg-primary text-white font-semibold'
-                  : 'bg-surface-badge text-text-muted hover:bg-surface-badge/80'
-              }`}
-            >
-              Escritorio
-            </button>
-            <button
-              onClick={() => setSpaceType('parking')}
-              className={`flex-1 flex items-center justify-center gap-1.5 h-10 rounded-lg font-mono text-[11px] cursor-pointer border-none transition-colors ${
-                spaceType === 'parking'
-                  ? 'bg-primary text-white font-semibold'
-                  : 'bg-surface-badge text-text-muted hover:bg-surface-badge/80'
-              }`}
-            >
-              Estacionamiento
-            </button>
           </div>
         </div>
 
