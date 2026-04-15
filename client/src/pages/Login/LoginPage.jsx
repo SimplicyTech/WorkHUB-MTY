@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../context/useAuth'
 import stLogo from '../../assets/SimplicyTechLogoCompleto.png'
 
 export default function LoginPage() {
@@ -25,10 +25,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-dvh flex-col lg:flex-row">
       {/* Left Panel */}
       <div
-        className="w-1/2 flex flex-col items-center justify-center gap-10 px-15"
+        className="w-full lg:w-1/2 min-h-[260px] lg:min-h-dvh flex flex-col items-center justify-center gap-8 sm:gap-10 px-5 sm:px-10 lg:px-15 py-10 text-center"
         style={{
           background: 'linear-gradient(180deg, #460073 0%, #000000 100%)',
         }}
@@ -38,7 +38,7 @@ export default function LoginPage() {
             <span className="text-primary text-2xl">›</span>
             <span className="text-white text-xl">accenture</span>
           </div>
-          <h1 className="font-heading text-5xl font-bold text-primary">
+          <h1 className="font-heading text-4xl sm:text-5xl font-bold text-primary">
             WORKHUB MTY
           </h1>
           <p className="font-mono text-sm text-text-muted">
@@ -53,7 +53,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right Panel */}
-      <div className="w-1/2 bg-surface flex items-center justify-center px-30">
+      <div className="w-full lg:w-1/2 bg-surface flex items-center justify-center px-5 sm:px-10 lg:px-24 xl:px-30 py-10 lg:py-12">
         <form onSubmit={handleSubmit} className="w-full max-w-[400px] flex flex-col gap-8">
           {/* Form Header */}
           <div className="flex flex-col gap-2">

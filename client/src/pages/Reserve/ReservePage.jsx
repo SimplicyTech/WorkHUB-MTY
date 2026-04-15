@@ -25,7 +25,7 @@ export default function ReservePage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-60px)]">
+    <div className="flex min-h-[calc(100dvh-64px)] flex-col lg:h-[calc(100dvh-64px)] lg:flex-row">
       <BookingSidebar selectedDesk={selectedDesk} onReserve={handleReserve} />
       <FloorMap
         desks={deskData}
@@ -36,4 +36,3 @@ export default function ReservePage() {
     </div>
   )
 }
-

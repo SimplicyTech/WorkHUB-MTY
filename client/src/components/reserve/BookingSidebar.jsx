@@ -7,12 +7,11 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
   const [exitTime, setExitTime] = useState('18:00')
   const [floor, setFloor] = useState('piso-3')
   const [reserveFor, setReserveFor] = useState('me')
-  const [spaceType, setSpaceType] = useState('desk')
 
   return (
-    <div className="w-[360px] shrink-0 bg-surface flex flex-col h-full">
+    <div className="w-full lg:w-[360px] lg:shrink-0 bg-surface flex flex-col lg:h-full">
       {/* Header */}
-      <div className="bg-surface-card px-6 py-5 flex flex-col gap-2">
+      <div className="bg-surface-card px-4 sm:px-6 py-5 flex flex-col gap-2">
         <span className="font-mono text-[11px] text-primary font-semibold">
           // reservar_mi_lugar
         </span>
@@ -25,13 +24,13 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
       </div>
 
       {/* Form */}
-      <div className="flex-1 px-6 py-5 flex flex-col gap-3.5 overflow-y-auto">
+      <div className="flex-1 px-4 sm:px-6 py-5 flex flex-col gap-3.5 overflow-y-visible lg:overflow-y-auto">
         {/* Reservar para */}
         <div className="flex flex-col gap-1.5">
           <label className="font-mono text-[11px] text-white font-semibold">
             reservar_para
           </label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
             <button
               onClick={() => setReserveFor('me')}
               className={`flex-1 flex items-center justify-center gap-1.5 h-10 rounded-lg font-mono text-xs cursor-pointer border-none transition-colors ${
@@ -72,8 +71,8 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
         </div>
 
         {/* Horario */}
-        <div className="flex gap-3">
-          <div className="flex-1 flex flex-col gap-1.5">
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <label className="font-mono text-[11px] text-white font-semibold">
               hora_entrada
             </label>
@@ -87,7 +86,7 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none">⏱</span>
             </div>
           </div>
-          <div className="flex-1 flex flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <label className="font-mono text-[11px] text-white font-semibold">
               hora_salida
             </label>
@@ -119,35 +118,6 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
               <option value="piso-3">Piso 3 — Área de Trabajo General</option>
             </select>
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none">▾</span>
-          </div>
-        </div>
-
-        {/* Tipo de espacio */}
-        <div className="flex flex-col gap-1.5">
-          <label className="font-mono text-[11px] text-white font-semibold">
-            tipo_de_espacio
-          </label>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSpaceType('desk')}
-              className={`flex-1 flex items-center justify-center gap-1.5 h-10 rounded-lg font-mono text-[11px] cursor-pointer border-none transition-colors ${
-                spaceType === 'desk'
-                  ? 'bg-primary text-white font-semibold'
-                  : 'bg-surface-badge text-text-muted hover:bg-surface-badge/80'
-              }`}
-            >
-              Escritorio
-            </button>
-            <button
-              onClick={() => setSpaceType('parking')}
-              className={`flex-1 flex items-center justify-center gap-1.5 h-10 rounded-lg font-mono text-[11px] cursor-pointer border-none transition-colors ${
-                spaceType === 'parking'
-                  ? 'bg-primary text-white font-semibold'
-                  : 'bg-surface-badge text-text-muted hover:bg-surface-badge/80'
-              }`}
-            >
-              Estacionamiento
-            </button>
           </div>
         </div>
 
@@ -199,7 +169,7 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
       </div>
 
       {/* Bottom */}
-      <div className="bg-surface-card px-6 py-4 flex flex-col gap-2">
+      <div className="bg-surface-card px-4 sm:px-6 py-4 flex flex-col gap-2 lg:shrink-0">
         <button
           onClick={onReserve}
           disabled={!selectedDesk}

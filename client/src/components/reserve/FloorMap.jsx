@@ -114,11 +114,11 @@ export default function FloorMap({ desks, rooms, selectedDesk, onSelectDesk }) {
   const findRoom = (id) => rooms.find((r) => r.id === id)
 
   return (
-    <div className="flex-1 flex flex-col h-full min-w-0">
+    <div className="flex-1 flex flex-col min-h-[620px] lg:h-full min-w-0">
       {/* Map Canvas - scrollable */}
-      <div className="flex-1 overflow-auto p-8">
+      <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
         <div
-          className="rounded-xl border border-[#200040] relative"
+          className="rounded-lg border border-[#200040] relative"
           style={{
             width: '100%',
             minWidth: 1010,
@@ -273,8 +273,8 @@ export default function FloorMap({ desks, rooms, selectedDesk, onSelectDesk }) {
       </div>
 
       {/* Status Bar */}
-      <div className="flex items-center justify-between px-6 py-2 bg-surface shrink-0">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 px-4 py-3 bg-surface shrink-0 md:flex-row md:items-center md:justify-between md:px-6 md:py-2">
+        <div className="flex min-w-0 items-center gap-2">
           <span className="w-2 h-2 rounded bg-accent" />
           <span className="font-mono text-[9px] text-text-muted">
             Datos en tiempo real — última actualización: hace 2 min
