@@ -17,9 +17,9 @@ export default function ParkingPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-60px)]">
+    <div className="flex min-h-[calc(100dvh-64px)] flex-col">
       {/* Progress Bar */}
-      <div className="bg-surface-card px-12 py-3 flex items-center gap-4">
+      <div className="bg-surface-card px-4 sm:px-6 md:px-12 py-3 flex flex-wrap items-center gap-2 sm:gap-4">
         <div className="flex items-center gap-2">
           <span className="text-accent text-sm">✓</span>
           <span className="font-mono text-[11px] text-accent font-semibold">
@@ -40,11 +40,11 @@ export default function ParkingPage() {
       </div>
 
       {/* Centered Content */}
-      <div className="flex-1 overflow-y-auto flex items-center justify-center p-8 md:p-12">
-        <div className="parking-card w-full max-w-[560px] rounded-2xl overflow-hidden border border-[#1f003d] my-auto">
+      <div className="flex-1 overflow-y-auto flex items-center justify-center p-4 sm:p-8 md:p-12">
+        <div className="parking-card w-full max-w-[560px] rounded-lg overflow-hidden border border-[#1f003d] my-auto">
           {/* Card Header */}
-          <div className="bg-surface-card px-10 py-8 flex flex-col gap-3">
-            <h2 className="font-heading text-[28px] font-bold text-white m-0">
+          <div className="bg-surface-card px-5 sm:px-10 py-7 sm:py-8 flex flex-col gap-3">
+            <h2 className="font-heading text-2xl sm:text-[28px] font-bold text-white m-0">
               ¿Necesitas Estacionamiento?
             </h2>
             <p className="font-mono text-[11px] text-text-muted leading-[1.6] m-0">
@@ -54,11 +54,11 @@ export default function ParkingPage() {
           </div>
 
           {/* Options */}
-          <div className="px-10 py-6 flex flex-col gap-4 bg-[#0d0015]">
+          <div className="px-5 sm:px-10 py-6 flex flex-col gap-4 bg-[#0d0015]">
             {/* Yes Option */}
             <button
               onClick={() => setSelectedOption('yes')}
-              className={`parking-option w-full flex items-center gap-4 p-5 rounded-xl border-none cursor-pointer transition-all ${
+              className={`parking-option w-full flex items-start sm:items-center gap-4 p-4 sm:p-5 rounded-lg border-none cursor-pointer transition-all ${
                 selectedOption === 'yes'
                   ? 'bg-[#200040] ring-2 ring-primary'
                   : 'bg-[#0d0015] ring-1 ring-[#2a2a2a] hover:ring-primary/50'
@@ -116,7 +116,7 @@ export default function ParkingPage() {
             {/* No Option */}
             <button
               onClick={() => setSelectedOption('no')}
-              className={`parking-option w-full flex items-center gap-4 p-5 rounded-xl border-none cursor-pointer transition-all ${
+              className={`parking-option w-full flex items-start sm:items-center gap-4 p-4 sm:p-5 rounded-lg border-none cursor-pointer transition-all ${
                 selectedOption === 'no'
                   ? 'bg-[#200040] ring-2 ring-primary'
                   : 'bg-[#0d0015] ring-1 ring-[#2a2a2a] hover:ring-primary/50'
@@ -171,7 +171,7 @@ export default function ParkingPage() {
           </div>
 
           {/* Info Section */}
-          <div className="px-10 py-4 flex items-center gap-3 bg-[#0d0015]">
+          <div className="px-5 sm:px-10 py-4 flex items-start sm:items-center gap-3 bg-[#0d0015]">
             <span className="text-primary text-sm shrink-0">ℹ</span>
             <span className="font-mono text-[10px] text-text-muted leading-[1.5]">
               La asignación de cajón será automática y se confirmará al momento
@@ -180,7 +180,7 @@ export default function ParkingPage() {
           </div>
 
           {/* Bottom Action */}
-          <div className="bg-surface-card px-10 py-6 flex flex-col gap-3">
+          <div className="bg-surface-card px-5 sm:px-10 py-6 flex flex-col gap-3">
             <button
               onClick={handleContinue}
               className="parking-continue-btn h-[52px] rounded-lg bg-primary font-heading text-base font-semibold text-white flex items-center justify-center gap-2 cursor-pointer border-none hover:bg-primary-dark transition-colors"
@@ -197,7 +197,7 @@ export default function ParkingPage() {
 
       {/* Chatbot FAB */}
       <button
-        className="fixed bottom-8 right-8 w-[52px] h-[52px] rounded-full bg-primary flex items-center justify-center cursor-pointer border-none shadow-[0_4px_20px_rgba(161,0,255,0.4)] hover:shadow-[0_4px_30px_rgba(161,0,255,0.6)] transition-shadow z-50"
+        className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 w-[52px] h-[52px] rounded-full bg-primary flex items-center justify-center cursor-pointer border-none shadow-[0_4px_20px_rgba(161,0,255,0.4)] hover:shadow-[0_4px_30px_rgba(161,0,255,0.6)] transition-shadow z-50"
         aria-label="Chatbot"
       >
         <span className="text-white text-xl">💬</span>

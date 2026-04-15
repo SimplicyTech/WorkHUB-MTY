@@ -21,7 +21,7 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section className="flex flex-col items-center gap-10 md:gap-12 px-5 md:px-12 py-12 md:py-20">
+    <section className="flex flex-col items-center gap-10 md:gap-12 px-4 sm:px-5 md:px-12 py-12 md:py-20">
       {/* Header */}
       <div className="flex flex-col items-center gap-3">
         <span className="font-mono text-[11px] text-accent font-semibold">
@@ -33,11 +33,11 @@ export default function HowItWorks() {
       </div>
 
       {/* Steps */}
-      <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full">
+      <div className="grid w-full grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         {steps.map((step) => (
           <div
             key={step.num}
-            className="flex-1 bg-surface-card rounded-2xl p-5 md:p-7 flex flex-row md:flex-col items-start md:items-center gap-4"
+            className="min-w-0 bg-surface-card rounded-lg p-5 md:p-7 flex flex-row md:flex-col items-start md:items-center gap-4"
           >
             <span className={`font-heading text-4xl md:text-5xl font-bold shrink-0 ${step.numColor}`}>
               {step.num}

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../context/useAuth'
 
 const navLinks = [
   { label: 'Inicio', to: '/' },
@@ -38,12 +38,12 @@ export default function Navbar() {
   return (
     <nav className="bg-surface relative z-40">
       {/* Barra principal */}
-      <div className="flex items-center justify-between px-5 md:px-12 py-4">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="text-primary text-2xl">›</span>
-          <span className="text-white text-base">accenture</span>
+      <div className="flex items-center justify-between gap-4 px-4 sm:px-5 md:px-12 py-4">
+        <Link to="/" className="flex min-w-0 items-center gap-2">
+          <span className="text-primary text-2xl shrink-0">›</span>
+          <span className="hidden min-[380px]:inline text-white text-base">accenture</span>
           <span className="font-mono text-sm text-text-muted">//</span>
-          <span className="font-heading text-sm text-primary font-semibold">WORKHUB MTY</span>
+          <span className="font-heading text-sm text-primary font-semibold truncate">WORKHUB MTY</span>
         </Link>
 
         {/* Links desktop */}
@@ -162,12 +162,16 @@ export default function Navbar() {
       {menuOpen && (
         <div className="md:hidden border-t border-surface-badge bg-surface px-5 py-4 flex flex-col gap-1">
           {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              to={link.to}
-              onClick={() => setMenuOpen(false)}
-              className={`font-mono text-[13px] py-3 border-b border-surface-badge last:border-0 transition-colors ${
-                location.pathname === link.to
+              <Link
+                key={link.label}
+                to={link.to}
+                onClick={() => setMenuOpen(false)}
+                className={`font-mono text-[13px] py-3 border-b border-surface-badge last:border-0 transition-colors ${
+                (link.to === '/reservar'
+                  ? ['/reservar', '/estacionamiento', '/confirmacion'].includes(
+                      location.pathname
+                    )
+                  : location.pathname === link.to)
                   ? 'text-primary font-semibold'
                   : 'text-text-muted hover:text-white'
               }`}

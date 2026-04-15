@@ -1,11 +1,9 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
 import { useMemo } from 'react'
 
 export default function ConfirmationPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth()
 
   const deskId = location.state?.deskId || 'D-304'
   const parking = location.state?.parking ?? true
@@ -16,9 +14,9 @@ export default function ConfirmationPage() {
     const y = now.getFullYear()
     const m = String(now.getMonth() + 1).padStart(2, '0')
     const d = String(now.getDate()).padStart(2, '0')
-    const seq = String(Math.floor(Math.random() * 100)).padStart(2, '0')
+    const seq = deskId.replace(/\D/g, '').slice(-2).padStart(2, '0')
     return `RES-${y}${m}${d}${seq}`
-  }, [])
+  }, [deskId])
 
   const detailRows = [
     { icon: '🖥️', label: 'Escritorio:', value: deskId },
@@ -33,9 +31,9 @@ export default function ConfirmationPage() {
   ]
 
   return (
-    <div className="flex flex-col h-[calc(100vh-60px)]">
+    <div className="flex min-h-[calc(100dvh-64px)] flex-col">
       {/* Progress Bar — all steps completed */}
-      <div className="bg-surface-card px-6 md:px-12 py-3 flex items-center gap-4">
+      <div className="bg-surface-card px-4 sm:px-6 md:px-12 py-3 flex flex-wrap items-center gap-2 sm:gap-4">
         <div className="flex items-center gap-2">
           <span className="text-accent text-sm">✓</span>
           <span className="font-mono text-[11px] text-accent font-semibold">
@@ -60,7 +58,7 @@ export default function ConfirmationPage() {
 
       {/* Main Content with gradient background */}
       <div
-        className="flex-1 overflow-y-auto flex flex-col items-center gap-8 px-6 py-10 md:px-12"
+        className="flex-1 overflow-y-auto flex flex-col items-center gap-8 px-4 sm:px-6 py-10 md:px-12"
         style={{
           background: 'linear-gradient(180deg, #000000 0%, #460073 100%)',
         }}
@@ -75,7 +73,7 @@ export default function ConfirmationPage() {
 
         {/* Title */}
         <div className="flex flex-col items-center gap-3 animate-[fadeUp_0.6s_ease-out]">
-          <h1 className="font-heading text-4xl font-bold text-white m-0 text-center">
+          <h1 className="font-heading text-3xl sm:text-4xl font-bold text-white m-0 text-center">
             ¡RESERVACIÓN CONFIRMADA!
           </h1>
           <p className="font-mono text-xs text-text-muted leading-[1.5] text-center max-w-[600px] m-0">
@@ -85,7 +83,7 @@ export default function ConfirmationPage() {
         </div>
 
         {/* Summary Card */}
-        <div className="w-full max-w-[800px] rounded-2xl bg-surface-card p-8 flex flex-col gap-6 animate-[fadeUp_0.8s_ease-out]">
+        <div className="w-full max-w-[800px] rounded-lg bg-surface-card p-5 sm:p-8 flex flex-col gap-6 animate-[fadeUp_0.8s_ease-out]">
           {/* Two-column layout: Details + QR */}
           <div className="flex flex-col md:flex-row gap-8">
             {/* Detail Column */}
@@ -97,7 +95,7 @@ export default function ConfirmationPage() {
               {detailRows.map((row) => (
                 <div
                   key={row.label}
-                  className="flex items-center gap-2"
+                  className="grid grid-cols-[20px_minmax(95px,auto)_1fr] items-center gap-2"
                 >
                   <span className="text-primary text-sm w-5 shrink-0 text-center">
                     {row.icon}
@@ -105,7 +103,7 @@ export default function ConfirmationPage() {
                   <span className="font-mono text-xs text-text-muted">
                     {row.label}
                   </span>
-                  <span className="font-mono text-xs text-white font-semibold">
+                  <span className="font-mono text-xs text-white font-semibold min-w-0 break-words">
                     {row.value}
                   </span>
                 </div>
@@ -115,7 +113,7 @@ export default function ConfirmationPage() {
             {/* QR Column */}
             <div className="flex flex-col items-center justify-center gap-4 w-full md:w-[220px] shrink-0 p-4">
               {/* QR Code placeholder */}
-              <div className="w-[180px] h-[180px] rounded-xl bg-white flex items-center justify-center p-3">
+              <div className="w-[180px] h-[180px] rounded-lg bg-white flex items-center justify-center p-3">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${reservationId}&bgcolor=FFFFFF&color=000000`}
                   alt="QR Code de acceso"
@@ -160,7 +158,7 @@ export default function ConfirmationPage() {
 
       {/* Chatbot FAB */}
       <button
-        className="fixed bottom-8 right-8 w-[52px] h-[52px] rounded-full bg-primary flex items-center justify-center cursor-pointer border-none shadow-[0_4px_20px_rgba(161,0,255,0.4)] hover:shadow-[0_4px_30px_rgba(161,0,255,0.6)] transition-shadow z-50"
+        className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 w-[52px] h-[52px] rounded-full bg-primary flex items-center justify-center cursor-pointer border-none shadow-[0_4px_20px_rgba(161,0,255,0.4)] hover:shadow-[0_4px_30px_rgba(161,0,255,0.6)] transition-shadow z-50"
         aria-label="Chatbot"
       >
         <span className="text-white text-xl">💬</span>

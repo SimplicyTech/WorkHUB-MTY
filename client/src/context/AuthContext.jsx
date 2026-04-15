@@ -1,28 +1,23 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { loginRequest } from '../services/auth'
 import { setToken, clearToken, getToken } from '../services/api'
-
-const AuthContext = createContext(null)
-
-const USER_KEY = 'workhub_user'
+import { AuthContext, USER_KEY } from './useAuth'
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
+  const [user, setUser] = useState(() => {
     const token = getToken()
     const stored = localStorage.getItem(USER_KEY)
-    if (token && stored) {
-      try {
-        setUser(JSON.parse(stored))
-      } catch {
-        localStorage.removeItem(USER_KEY)
-        clearToken()
-      }
+    if (!token || !stored) return null
+
+    try {
+      return JSON.parse(stored)
+    } catch {
+      localStorage.removeItem(USER_KEY)
+      clearToken()
+      return null
     }
-    setLoading(false)
-  }, [])
+  })
+  const loading = false
 
   const login = async (email, password) => {
     try {
@@ -64,5 +59,3 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   )
 }
-
-export const useAuth = () => useContext(AuthContext)
