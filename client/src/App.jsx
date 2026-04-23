@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { DashboardProvider } from './context/DashboardContext'
 import MainLayout from './layouts/MainLayout'
 import AppLayout from './layouts/AppLayout'
 import LandingPage from './pages/Landing/LandingPage'
@@ -11,6 +12,7 @@ import ConfirmationPage from './pages/Reserve/ConfirmationPage'
 function App() {
   return (
     <AuthProvider>
+      <DashboardProvider>
       <BrowserRouter>
         <Routes>
           <Route element={<MainLayout />}>
@@ -24,6 +26,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
         </Routes>
       </BrowserRouter>
+      </DashboardProvider>
     </AuthProvider>
   )
 }
