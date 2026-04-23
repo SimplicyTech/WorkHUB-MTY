@@ -24,3 +24,13 @@ export function saveReservation(reservation) {
 
   localStorage.setItem(RESERVATIONS_KEY, JSON.stringify(nextReservations))
 }
+
+export function updateReservation(id, updates) {
+  const currentReservations = getReservations()
+  const nextReservations = currentReservations.map((item) =>
+    item.id === id ? { ...item, ...updates } : item
+  )
+
+  localStorage.setItem(RESERVATIONS_KEY, JSON.stringify(nextReservations))
+  return nextReservations
+}

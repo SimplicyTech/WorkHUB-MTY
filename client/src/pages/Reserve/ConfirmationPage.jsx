@@ -35,6 +35,7 @@ export default function ConfirmationPage() {
     saveReservation({
       id: reservationId,
       deskId,
+      status: 'active',
       parking,
       parkingLabel: parking ? 'Nivel B1' : 'No solicitado',
       zoneLabel: 'Piso 3 - Area General',
