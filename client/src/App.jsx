@@ -7,6 +7,7 @@ import LoginPage from './pages/Login/LoginPage'
 import ReservePage from './pages/Reserve/ReservePage'
 import ParkingPage from './pages/Reserve/ParkingPage'
 import ConfirmationPage from './pages/Reserve/ConfirmationPage'
+import MyReservationsPage from './pages/Reserve/MyReservationsPage'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             <Route path="/reservar" element={<ReservePage />} />
             <Route path="/estacionamiento" element={<ParkingPage />} />
             <Route path="/confirmacion" element={<ConfirmationPage />} />
+            <Route path="/mis-reservaciones" element={<MyReservationsPage />} />
           </Route>
           <Route path="/login" element={<LoginPage />} />
         </Routes>
@@ -29,4 +31,3 @@ function App() {
 }
 
 export default App
-
