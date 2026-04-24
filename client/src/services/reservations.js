@@ -1,36 +1,37 @@
-const RESERVATIONS_KEY = 'workhub-reservations'
+import { apiRequest } from './api'
 
-export function getReservations() {
-  const storedReservations = localStorage.getItem(RESERVATIONS_KEY)
+// ── Espacios ──────────────────────────────────────────────
 
-  if (!storedReservations) {
-    return []
-  }
-
-  try {
-    const parsedReservations = JSON.parse(storedReservations)
-    return Array.isArray(parsedReservations) ? parsedReservations : []
-  } catch {
-    return []
-  }
-}
-
-export function saveReservation(reservation) {
-  const currentReservations = getReservations()
-  const nextReservations = [
-    reservation,
-    ...currentReservations.filter((item) => item.id !== reservation.id),
-  ]
-
-  localStorage.setItem(RESERVATIONS_KEY, JSON.stringify(nextReservations))
-}
-
-export function updateReservation(id, updates) {
-  const currentReservations = getReservations()
-  const nextReservations = currentReservations.map((item) =>
-    item.id === id ? { ...item, ...updates } : item
+export function getEspaciosDisponibilidad(fecha, horaInicio, horaFin) {
+  return apiRequest(
+    `/espacios/disponibilidad?fecha=${fecha}&horaInicio=${horaInicio}&horaFin=${horaFin}`
   )
+}
 
-  localStorage.setItem(RESERVATIONS_KEY, JSON.stringify(nextReservations))
-  return nextReservations
+// ── Reservaciones ─────────────────────────────────────────
+
+export function getReservacionesByEmpleado(empleadoId) {
+  return apiRequest(`/reservaciones/empleado/${empleadoId}`)
+}
+
+export function createReservacion({
+  EmpleadoID,
+  EspacioID,
+  VisitaID,
+  EstatusID,
+  Fecha,
+  HoraInicio,
+  HoraFin,
+  Descripcion,
+}) {
+  return apiRequest('/reservaciones', {
+    method: 'POST',
+    body: { EmpleadoID, EspacioID, VisitaID, EstatusID, Fecha, HoraInicio, HoraFin, Descripcion },
+  })
+}
+
+export function cancelReservacion(reservacionId) {
+  return apiRequest(`/reservaciones/${reservacionId}`, {
+    method: 'DELETE',
+  })
 }

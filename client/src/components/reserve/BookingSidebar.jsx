@@ -1,12 +1,33 @@
-import { useState } from 'react'
-import { floorStats } from '../../data/floorData'
+import { useState, useEffect } from 'react'
 
-export default function BookingSidebar({ selectedDesk, onReserve }) {
-  const [date, setDate] = useState('2026-02-27')
+function getTodayString() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+export default function BookingSidebar({
+  selectedDesk,
+  onReserve,
+  stats,
+  loadingStats,
+  onFiltersChange,
+}) {
+  const [date, setDate] = useState(getTodayString)
   const [entryTime, setEntryTime] = useState('09:00')
   const [exitTime, setExitTime] = useState('18:00')
   const [floor, setFloor] = useState('piso-3')
   const [reserveFor, setReserveFor] = useState('me')
+
+  // Notify parent whenever filters change so it can re-fetch availability
+  useEffect(() => {
+    onFiltersChange?.({ date, entryTime, exitTime, floor, reserveFor })
+  }, [date, entryTime, exitTime, floor, reserveFor])
+
+  const handleReserve = () => {
+    onReserve?.({ date, entryTime, exitTime, floor, reserveFor })
+  }
+
+  const displayStats = stats || { available: 0, occupied: 0, total: 0 }
 
   return (
     <div className="w-full lg:w-[360px] lg:shrink-0 bg-surface flex flex-col lg:h-full">
@@ -64,6 +85,7 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              min={getTodayString()}
               className="w-full h-11 px-3 pr-8 rounded-lg bg-surface-badge font-mono text-[13px] text-white border-none outline-none cursor-pointer [color-scheme:dark]"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none">📅</span>
@@ -131,19 +153,19 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
           <div className="flex gap-1.5">
             <div className="flex-1 flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg bg-surface-badge">
               <span className="font-heading text-[22px] font-bold text-accent">
-                {floorStats.available}
+                {loadingStats ? '…' : displayStats.available}
               </span>
               <span className="font-mono text-[8px] text-text-muted">disponibles</span>
             </div>
             <div className="flex-1 flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg bg-surface-badge">
               <span className="font-heading text-[22px] font-bold text-[#ff3246]">
-                {floorStats.occupied}
+                {loadingStats ? '…' : displayStats.occupied}
               </span>
               <span className="font-mono text-[8px] text-text-muted">ocupados</span>
             </div>
             <div className="flex-1 flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg bg-surface-badge">
               <span className="font-heading text-[22px] font-bold text-white">
-                {floorStats.total}
+                {loadingStats ? '…' : displayStats.total}
               </span>
               <span className="font-mono text-[8px] text-text-muted">total</span>
             </div>
@@ -171,7 +193,7 @@ export default function BookingSidebar({ selectedDesk, onReserve }) {
       {/* Bottom */}
       <div className="bg-surface-card px-4 sm:px-6 py-4 flex flex-col gap-2 lg:shrink-0">
         <button
-          onClick={onReserve}
+          onClick={handleReserve}
           disabled={!selectedDesk}
           className={`h-[52px] rounded-lg font-heading text-base font-semibold flex items-center justify-center gap-2 cursor-pointer border-none transition-colors ${
             selectedDesk

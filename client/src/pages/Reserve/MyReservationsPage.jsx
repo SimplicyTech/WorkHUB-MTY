@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { getReservations, updateReservation } from '../../services/reservations'
+import { useAuth } from '../../context/useAuth'
+import { getReservacionesByEmpleado, cancelReservacion } from '../../services/reservations'
 
 const FILTERS = [
   { key: 'active', label: 'Activas' },
@@ -9,74 +10,114 @@ const FILTERS = [
   { key: 'past', label: 'Pasadas' },
 ]
 
-function normalizeReservation(reservation, index) {
-  const isEven = index % 2 === 0
+function classifyReservation(r) {
+  const estatusName = (r.EstatusNombre || '').toLowerCase()
+  if (estatusName === 'cancelada') return 'cancelled'
 
-  return {
-    ...reservation,
-    floorLabel: reservation.zoneLabel?.includes('Piso')
-      ? reservation.zoneLabel
-      : 'Piso 3',
-    guestLabel: isEven ? reservation.parkingLabel : 'Carlos López',
-    guestTone: isEven ? '🚗' : '👤',
-    tagLabel: isEven ? null : 'Visitante',
-    dateLabel: reservation.dateLabel || '27/Feb/2026',
-    timeLabel: reservation.timeLabel || '09:00 - 17:00',
-  }
+  const now = new Date()
+  const reservationDate = new Date(r.Fecha)
+  // Normalize to compare just dates
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const resDay = new Date(reservationDate.getFullYear(), reservationDate.getMonth(), reservationDate.getDate())
+
+  if (resDay < today) return 'past'
+  if (resDay > today) return 'upcoming'
+
+  // Same day — check time
+  const [endH, endM] = (r.HoraFin || '18:00').split(':').map(Number)
+  const endMinutes = endH * 60 + endM
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+
+  if (nowMinutes > endMinutes) return 'past'
+  return 'active'
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr)
+  const day = String(d.getDate()).padStart(2, '0')
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+  return `${day}/${months[d.getMonth()]}/${d.getFullYear()}`
+}
+
+function formatTime(start, end) {
+  if (!start || !end) return '—'
+  return `${start.slice(0, 5)} - ${end.slice(0, 5)}`
 }
 
 export default function MyReservationsPage() {
-  const [reservations, setReservations] = useState(() =>
-    getReservations().map((reservation, index) => normalizeReservation(reservation, index))
-  )
+  const { user } = useAuth()
+  const [reservations, setReservations] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [activeFilter, setActiveFilter] = useState('active')
   const [reservationToCancel, setReservationToCancel] = useState(null)
+  const [cancelling, setCancelling] = useState(false)
+
+  const fetchReservations = useCallback(async () => {
+    if (!user?.empleadoId) return
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await getReservacionesByEmpleado(user.empleadoId)
+      setReservations(
+        (res.data || []).map((r) => ({
+          ...r,
+          classification: classifyReservation(r),
+        }))
+      )
+    } catch (err) {
+      console.error('Error fetching reservations:', err)
+      setError(err?.error || 'Error al obtener reservaciones')
+    } finally {
+      setLoading(false)
+    }
+  }, [user?.empleadoId])
+
+  useEffect(() => {
+    fetchReservations()
+  }, [fetchReservations])
 
   const counts = useMemo(
     () => ({
-      active: reservations.filter((reservation) => reservation.status !== 'cancelled')
-        .length,
-      upcoming: reservations.filter((reservation) => reservation.status === 'upcoming')
-        .length,
-      cancelled: reservations.filter(
-        (reservation) => reservation.status === 'cancelled'
-      ).length,
-      past: reservations.filter((reservation) => reservation.status === 'past').length,
+      active: reservations.filter((r) => r.classification === 'active').length,
+      upcoming: reservations.filter((r) => r.classification === 'upcoming').length,
+      cancelled: reservations.filter((r) => r.classification === 'cancelled').length,
+      past: reservations.filter((r) => r.classification === 'past').length,
     }),
     [reservations]
   )
 
   const filteredReservations = useMemo(() => {
-    if (activeFilter === 'active') {
-      return reservations.filter((reservation) => reservation.status !== 'cancelled')
-    }
-    if (activeFilter === 'cancelled') {
-      return reservations.filter((reservation) => reservation.status === 'cancelled')
-    }
-    if (activeFilter === 'upcoming') {
-      return reservations.filter((reservation) => reservation.status === 'upcoming')
-    }
-    if (activeFilter === 'past') {
-      return reservations.filter((reservation) => reservation.status === 'past')
-    }
-    return []
+    return reservations.filter((r) => r.classification === activeFilter)
   }, [activeFilter, reservations])
 
-  const handleCancelReservation = () => {
+  const handleCancelReservation = async () => {
     if (!reservationToCancel) return
+    setCancelling(true)
+    try {
+      await cancelReservacion(reservationToCancel.ReservacionID)
+      // Re-fetch from backend to get updated data
+      await fetchReservations()
+    } catch (err) {
+      console.error('Error cancelling:', err)
+      alert(err?.error || 'Error al cancelar la reservación')
+    } finally {
+      setCancelling(false)
+      setReservationToCancel(null)
+      setActiveFilter('active')
+    }
+  }
 
-    const nextReservations = updateReservation(reservationToCancel.id, {
-      status: 'cancelled',
-      cancelledAt: new Date().toISOString(),
-    })
-
-    setReservations(
-      nextReservations.map((reservation, index) =>
-        normalizeReservation(reservation, index)
-      )
+  if (loading) {
+    return (
+      <div className="min-h-[calc(100dvh-64px)] bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+          <span className="text-4xl">📋</span>
+          <p className="font-mono text-sm text-text-muted">Cargando reservaciones...</p>
+        </div>
+      </div>
     )
-    setReservationToCancel(null)
-    setActiveFilter('active')
   }
 
   return (
@@ -124,7 +165,27 @@ export default function MyReservationsPage() {
           })}
         </div>
 
-        {filteredReservations.length === 0 ? (
+        {error ? (
+          <section className="rounded-[22px] border border-[#2b0a43] bg-[#180126] px-8 py-14 sm:px-12">
+            <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-[22px] bg-[#25033d] text-4xl text-[#ff3246]">
+                ⚠
+              </div>
+              <h2 className="mt-6 font-heading text-3xl font-semibold uppercase text-white">
+                Error
+              </h2>
+              <p className="mt-4 max-w-xl font-mono text-xs leading-6 text-text-muted">
+                {error}
+              </p>
+              <button
+                onClick={fetchReservations}
+                className="mt-8 inline-flex h-11 items-center justify-center rounded-xl bg-[linear-gradient(90deg,#a100ff_0%,#d31cff_100%)] px-6 font-heading text-base font-semibold uppercase text-white"
+              >
+                Reintentar
+              </button>
+            </div>
+          </section>
+        ) : filteredReservations.length === 0 ? (
           <section className="rounded-[22px] border border-[#2b0a43] bg-[#180126] px-8 py-14 sm:px-12">
             <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
               <div className="flex h-20 w-20 items-center justify-center rounded-[22px] bg-[#25033d] text-4xl text-primary">
@@ -149,7 +210,7 @@ export default function MyReservationsPage() {
           <div className="flex flex-col gap-4 pt-8">
             {filteredReservations.map((reservation) => (
               <article
-                key={reservation.id}
+                key={reservation.ReservacionID}
                 className="flex flex-col gap-4 rounded-[18px] bg-[#1e0431] px-5 py-5 shadow-[0_16px_34px_rgba(0,0,0,0.2)] sm:px-6 lg:flex-row lg:items-center lg:justify-between"
               >
                 <div className="flex min-w-0 items-start gap-4">
@@ -160,25 +221,25 @@ export default function MyReservationsPage() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <h2 className="font-heading text-[1.75rem] font-semibold leading-none text-white sm:text-[1.95rem]">
-                        Escritorio {reservation.deskId} - {reservation.floorLabel}
+                        {reservation.EspacioNombre || `Espacio ${reservation.EspacioID}`}
                       </h2>
-                      {reservation.tagLabel && (
+                      {reservation.EstatusNombre && (
                         <span className="rounded-full bg-[#6c3600] px-2.5 py-1 font-mono text-[10px] text-[#ffb44c]">
-                          {reservation.tagLabel}
+                          {reservation.EstatusNombre}
                         </span>
                       )}
                     </div>
 
                     <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[12px] sm:text-[13px] text-text-muted">
-                      <span>{`📅 ${reservation.dateLabel}`}</span>
-                      <span>{`◔ ${reservation.timeLabel}`}</span>
-                      <span>{`${reservation.guestTone} ${reservation.guestLabel}`}</span>
+                      <span>{`📅 ${formatDate(reservation.Fecha)}`}</span>
+                      <span>{`◔ ${formatTime(reservation.HoraInicio, reservation.HoraFin)}`}</span>
+                      <span>{`👤 ${reservation.EmpleadoNombre || user?.name || '—'}`}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  {reservation.status === 'cancelled' ? (
+                  {reservation.classification === 'cancelled' ? (
                     <span className="inline-flex h-8 items-center justify-center rounded-full bg-[#3a0857] px-4 font-mono text-[12px] text-primary">
                       Cancelada
                     </span>
@@ -191,13 +252,6 @@ export default function MyReservationsPage() {
                       Cancelar
                     </button>
                   )}
-
-                  <button
-                    type="button"
-                    className="inline-flex h-9 items-center justify-center rounded-xl bg-[linear-gradient(90deg,#a100ff_0%,#d31cff_100%)] px-5 font-mono text-[12px] text-white transition-transform hover:scale-[1.01]"
-                  >
-                    Ver detalle
-                  </button>
                 </div>
               </article>
             ))}
@@ -215,15 +269,21 @@ export default function MyReservationsPage() {
               ¿Cancelar reservación?
             </h2>
             <p className="mt-4 font-mono text-xs leading-6 text-text-muted">
-              Esta acción moverá la reservación del escritorio{' '}
-              <span className="text-white">{reservationToCancel.deskId}</span> a
-              la pestaña de canceladas.
+              Esta acción cancelará la reservación del espacio{' '}
+              <span className="text-white">
+                {reservationToCancel.EspacioNombre || `Espacio ${reservationToCancel.EspacioID}`}
+              </span>{' '}
+              del{' '}
+              <span className="text-white">
+                {formatDate(reservationToCancel.Fecha)}
+              </span>.
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={() => setReservationToCancel(null)}
+                disabled={cancelling}
                 className="inline-flex h-11 items-center justify-center rounded-xl bg-[#241130] px-5 font-mono text-sm text-text-muted transition-colors hover:bg-[#2e163d] hover:text-white"
               >
                 Volver
@@ -231,9 +291,10 @@ export default function MyReservationsPage() {
               <button
                 type="button"
                 onClick={handleCancelReservation}
+                disabled={cancelling}
                 className="inline-flex h-11 items-center justify-center rounded-xl bg-[linear-gradient(90deg,#a100ff_0%,#d31cff_100%)] px-5 font-mono text-sm text-white"
               >
-                Sí, cancelar
+                {cancelling ? 'Cancelando...' : 'Sí, cancelar'}
               </button>
             </div>
           </div>

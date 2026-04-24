@@ -4,13 +4,26 @@ import { useNavigate, useLocation } from 'react-router-dom'
 export default function ParkingPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const reservedDesk = location.state?.deskId || 'D-304'
+  const {
+    deskId = 'D-304',
+    espacioID,
+    date,
+    entryTime,
+    exitTime,
+    reserveFor,
+  } = location.state || {}
+
   const [selectedOption, setSelectedOption] = useState('yes')
 
   const handleContinue = () => {
     navigate('/confirmacion', {
       state: {
-        deskId: reservedDesk,
+        deskId,
+        espacioID,
+        date,
+        entryTime,
+        exitTime,
+        reserveFor,
         parking: selectedOption === 'yes',
       },
     })
@@ -48,7 +61,7 @@ export default function ParkingPage() {
               ¿Necesitas Estacionamiento?
             </h2>
             <p className="font-mono text-[11px] text-text-muted leading-[1.6] m-0">
-              Tu escritorio {reservedDesk} en Piso 3 está reservado. Indica si
+              Tu escritorio {deskId} en Piso 3 está reservado. Indica si
               necesitas un espacio de estacionamiento para tu visita.
             </p>
           </div>

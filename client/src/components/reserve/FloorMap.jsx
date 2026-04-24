@@ -108,7 +108,7 @@ function ISAArea({ desks, selectedDesk, onSelect }) {
 
 /* ── Main component ────────────────────────── */
 
-export default function FloorMap({ desks, rooms, selectedDesk, onSelectDesk }) {
+export default function FloorMap({ desks, rooms, selectedDesk, onSelectDesk, loading }) {
   const byCluster = (c) => desks.filter((d) => d.cluster === c)
 
   const findRoom = (id) => rooms.find((r) => r.id === id)
@@ -116,7 +116,15 @@ export default function FloorMap({ desks, rooms, selectedDesk, onSelectDesk }) {
   return (
     <div className="flex-1 flex flex-col min-h-[620px] lg:h-full min-w-0">
       {/* Map Canvas - scrollable */}
-      <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+      <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 relative">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 rounded-lg">
+            <div className="flex flex-col items-center gap-3 animate-pulse">
+              <span className="text-4xl">🗺️</span>
+              <span className="font-mono text-sm text-white">Cargando mapa...</span>
+            </div>
+          </div>
+        )}
         <div
           className="rounded-lg border border-[#200040] relative"
           style={{
@@ -275,9 +283,9 @@ export default function FloorMap({ desks, rooms, selectedDesk, onSelectDesk }) {
       {/* Status Bar */}
       <div className="flex flex-col gap-2 px-4 py-3 bg-surface shrink-0 md:flex-row md:items-center md:justify-between md:px-6 md:py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="w-2 h-2 rounded bg-accent" />
+          <span className={`w-2 h-2 rounded ${loading ? 'bg-yellow-400 animate-pulse' : 'bg-accent'}`} />
           <span className="font-mono text-[9px] text-text-muted">
-            Datos en tiempo real — última actualización: hace 2 min
+            {loading ? 'Actualizando disponibilidad...' : 'Datos en tiempo real — conectado al servidor'}
           </span>
         </div>
         <span className="font-mono text-[9px] text-primary font-bold">
