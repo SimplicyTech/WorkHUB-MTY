@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
+import { saveReservation } from '../../services/reservations'
 
 export default function ConfirmationPage() {
   const navigate = useNavigate()
@@ -29,6 +30,20 @@ export default function ConfirmationPage() {
       value: parking ? 'Nivel B1' : 'No solicitado',
     },
   ]
+
+  useEffect(() => {
+    saveReservation({
+      id: reservationId,
+      deskId,
+      status: 'active',
+      parking,
+      parkingLabel: parking ? 'Nivel B1' : 'No solicitado',
+      zoneLabel: 'Piso 3 - Area General',
+      dateLabel: '27 / Feb / 2026',
+      timeLabel: '09:00 - 17:00',
+      createdAt: new Date().toISOString(),
+    })
+  }, [deskId, parking, reservationId])
 
   return (
     <div className="flex min-h-[calc(100dvh-64px)] flex-col">
