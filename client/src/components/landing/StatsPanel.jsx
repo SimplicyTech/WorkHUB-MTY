@@ -1,16 +1,46 @@
-const stats = [
-  { label: 'escritorios_libres', value: '42', color: 'text-accent' },
-  { label: 'estacionamiento', value: '18', color: 'text-primary' },
-  { label: 'ocupación_hoy', value: '73%', color: 'text-white' },
-]
-
-const bars = [
-  { label: 'piso_1', width: '60%', color: 'bg-accent' },
-  { label: 'piso_2', width: '40%', color: 'bg-primary' },
-  { label: 'piso_3', width: '70%', color: 'bg-accent' },
-]
+import { useDashboard } from '../../context/DashboardContext'
 
 export default function StatsPanel() {
+  const { data, loading } = useDashboard()
+
+  if (loading) {
+    return (
+      <div className="text-white font-mono text-xs">
+        Cargando dashboard...
+      </div>
+    )
+  }
+
+
+  const total = data.find(r => r.piso === 'TOTAL')
+
+  const stats = [
+    {
+      label: 'escritorios_libres',
+      value: total?.disponibles || 0,
+      color: 'text-accent'
+    },
+    {
+      label: 'estacionamiento',
+      value: total?.total || 0,
+      color: 'text-primary'
+    },
+    {
+      label: 'ocupación_hoy',
+      value: total
+        ? Math.round((total.ocupados / total.total) * 100) + '%'
+        : '0%',
+      color: 'text-white'
+    }
+  ]
+
+  const bars = data
+    .filter(r => r.piso !== 'TOTAL')
+    .map(r => ({
+      label: `piso_${r.piso}`,
+      width: `${Math.round((r.ocupados / r.total) * 100)}%`,
+      color: 'bg-accent'
+    }))
   return (
     <div className="bg-surface-card rounded-lg p-4 sm:p-6 flex flex-col gap-4">
       {/* Header */}
@@ -48,6 +78,7 @@ export default function StatsPanel() {
         <span className="font-mono text-[9px] text-text-muted">
           // distribución_por_piso
         </span>
+
         {bars.map((bar) => (
           <div key={bar.label} className="flex items-center gap-2">
             <span className="font-mono text-[9px] text-text-muted w-10">
