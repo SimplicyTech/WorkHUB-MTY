@@ -12,7 +12,7 @@ export default function StatsPanel() {
   }
 
 
-  const total = data.find(r => r.piso === 'TOTAL')
+  const total = data.find(r => r.Piso === 'TOTAL')
 
   const stats = [
     {
@@ -35,11 +35,11 @@ export default function StatsPanel() {
   ]
 
   const bars = data
-    .filter(r => r.piso !== 'TOTAL')
+    .filter(r => r.Piso !== 'TOTAL')
     .map(r => ({
-      label: `piso_${r.piso}`,
+      label: `piso_${r.Piso}`,
       width: `${Math.round((r.ocupados / r.total) * 100)}%`,
-      color: 'bg-accent'
+      color: 'bg-red-500'
     }))
   return (
     <div className="bg-surface-card rounded-lg p-4 sm:p-6 flex flex-col gap-4">
