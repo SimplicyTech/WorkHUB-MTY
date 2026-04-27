@@ -9,6 +9,7 @@ import ReservePage from './pages/Reserve/ReservePage'
 import ParkingPage from './pages/Reserve/ParkingPage'
 import ConfirmationPage from './pages/Reserve/ConfirmationPage'
 import MyReservationsPage from './pages/Reserve/MyReservationsPage'
+import ReservationDetailPage from './pages/Reserve/ReservationDetailPage'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
             <Route path="/estacionamiento" element={<ParkingPage />} />
             <Route path="/confirmacion" element={<ConfirmationPage />} />
             <Route path="/mis-reservaciones" element={<MyReservationsPage />} />
+            <Route path="/mis-reservaciones/:id" element={<ReservationDetailPage />} />
           </Route>
           <Route path="/login" element={<LoginPage />} />
         </Routes>

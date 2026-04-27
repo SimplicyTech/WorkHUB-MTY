@@ -14,11 +14,8 @@ export default function HeroSection() {
       {/* Hero Left */}
       <div className="flex-1 flex flex-col gap-5 w-full min-w-0">
         <div className="flex flex-wrap items-center gap-2 bg-surface-badge rounded-lg px-3 py-1.5 w-fit max-w-full">
-          <span className="font-mono text-[11px] text-text-muted">
-            // tiempo_real
-          </span>
           <span className="font-mono text-[11px] text-accent">
-            /// ATC Monterrey
+            ATC Monterrey
           </span>
         </div>
 

@@ -33,9 +33,6 @@ export default function BookingSidebar({
     <div className="w-full lg:w-[360px] lg:shrink-0 bg-surface flex flex-col lg:h-full">
       {/* Header */}
       <div className="bg-surface-card px-4 sm:px-6 py-5 flex flex-col gap-2">
-        <span className="font-mono text-[11px] text-primary font-semibold">
-          // reservar_mi_lugar
-        </span>
         <h2 className="font-heading text-2xl font-bold text-white">
           Nueva Reservación
         </h2>
@@ -88,7 +85,6 @@ export default function BookingSidebar({
               min={getTodayString()}
               className="w-full h-11 px-3 pr-8 rounded-lg bg-surface-badge font-mono text-[13px] text-white border-none outline-none cursor-pointer [color-scheme:dark]"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none">📅</span>
           </div>
         </div>
 
@@ -105,7 +101,6 @@ export default function BookingSidebar({
                 onChange={(e) => setEntryTime(e.target.value)}
                 className="w-full h-11 px-3 pr-8 rounded-lg bg-surface-badge font-mono text-[13px] text-white border-none outline-none cursor-pointer [color-scheme:dark]"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none">⏱</span>
             </div>
           </div>
           <div className="flex min-w-0 flex-col gap-1.5">
@@ -119,7 +114,6 @@ export default function BookingSidebar({
                 onChange={(e) => setExitTime(e.target.value)}
                 className="w-full h-11 px-3 pr-8 rounded-lg bg-surface-badge font-mono text-[13px] text-white border-none outline-none cursor-pointer [color-scheme:dark]"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">⏱</span>
             </div>
           </div>
         </div>
@@ -147,8 +141,8 @@ export default function BookingSidebar({
 
         {/* Disponibilidad */}
         <div className="flex flex-col gap-3">
-          <span className="font-mono text-[10px] text-primary font-semibold">
-            // disponibilidad_piso_3
+          <span className="font-mono text-[10px] text-text-muted font-semibold uppercase tracking-wide">
+            Disponibilidad piso 3
           </span>
           <div className="flex gap-1.5">
             <div className="flex-1 flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg bg-surface-badge">
@@ -174,12 +168,9 @@ export default function BookingSidebar({
 
         {/* AI Suggestion */}
         <div className="flex flex-col gap-1.5 p-2.5 rounded-lg border border-accent bg-accent/10">
-          <div className="flex items-center gap-1.5">
-            <span className="text-accent text-sm">✨</span>
-            <span className="font-mono text-[10px] text-accent font-semibold">
-              sugerencia_ia
-            </span>
-          </div>
+          <span className="font-mono text-[10px] text-accent font-semibold uppercase tracking-wide">
+            Sugerencia IA
+          </span>
           <p className="font-mono text-[8px] text-white leading-[1.4]">
             Basado en tu historial, IC3015 tiene 92% de disponibilidad a esta hora
             y coincide con tu zona preferida.

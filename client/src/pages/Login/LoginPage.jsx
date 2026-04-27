@@ -57,9 +57,6 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="w-full max-w-[400px] flex flex-col gap-8">
           {/* Form Header */}
           <div className="flex flex-col gap-2">
-            <span className="font-mono text-xs text-primary font-semibold">
-              // iniciar_sesión
-            </span>
             <h2 className="font-heading text-[32px] font-bold text-white">
               Accede a tu cuenta
             </h2>
@@ -106,7 +103,7 @@ export default function LoginPage() {
             disabled={submitting}
             className="bg-primary text-white font-heading text-base font-semibold h-[52px] rounded-lg flex items-center justify-center gap-2 hover:bg-primary-dark transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {submitting ? 'INGRESANDO...' : '⚡ INICIAR SESIÓN'}
+            {submitting ? 'INGRESANDO...' : 'INICIAR SESIÓN'}
           </button>
 
           <p className="font-mono text-[10px] text-text-muted text-center leading-relaxed">

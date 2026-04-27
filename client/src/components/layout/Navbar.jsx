@@ -81,9 +81,6 @@ export default function Navbar() {
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   className="flex items-center gap-3 cursor-pointer bg-transparent border-none"
                 >
-                  <span className="font-mono text-xs text-primary font-semibold">
-                    // mi_perfil
-                  </span>
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-2xl bg-primary flex items-center justify-center">
                       <span className="font-mono text-[11px] text-white font-bold">
@@ -107,7 +104,6 @@ export default function Navbar() {
                     </div>
                     <div className="h-px bg-surface-badge w-full" />
                     <button className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-badge transition-colors cursor-pointer bg-transparent border-none w-full text-left">
-                      <span className="text-text-muted text-lg">⚙</span>
                       <span className="font-mono text-xs text-white">Configuración</span>
                     </button>
                     <button
@@ -118,7 +114,6 @@ export default function Navbar() {
                       }}
                       className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-badge transition-colors cursor-pointer bg-transparent border-none w-full text-left"
                     >
-                      <span className="text-[#FF4D4D] text-lg">⏻</span>
                       <span className="font-mono text-xs text-[#FF4D4D]">Cerrar sesión</span>
                     </button>
                   </div>
@@ -126,9 +121,6 @@ export default function Navbar() {
               </div>
             ) : (
               <div className="flex items-center gap-4">
-                <Link to="/login" className="text-primary font-mono text-xs font-semibold">
-                  // mi_perfil
-                </Link>
                 <Link
                   to="/login"
                   className="bg-primary text-white font-heading text-sm font-semibold px-5 py-2.5 rounded-2xl hover:bg-primary-dark transition-colors"
@@ -196,7 +188,6 @@ export default function Navbar() {
                   </div>
                 </div>
                 <button className="flex items-center gap-3 py-3 w-full border-b border-surface-badge bg-transparent border-none cursor-pointer text-left">
-                  <span className="text-text-muted text-base">⚙</span>
                   <span className="font-mono text-xs text-white">Configuración</span>
                 </button>
                 <button
@@ -207,19 +198,11 @@ export default function Navbar() {
                   }}
                   className="flex items-center gap-3 py-3 w-full bg-transparent border-none cursor-pointer text-left"
                 >
-                  <span className="text-[#FF4D4D] text-base">⏻</span>
                   <span className="font-mono text-xs text-[#FF4D4D]">Cerrar sesión</span>
                 </button>
               </>
             ) : (
               <div className="flex flex-col gap-3">
-                <Link
-                  to="/login"
-                  onClick={() => setMenuOpen(false)}
-                  className="text-primary font-mono text-xs font-semibold"
-                >
-                  // mi_perfil
-                </Link>
                 <Link
                   to="/login"
                   onClick={() => setMenuOpen(false)}
