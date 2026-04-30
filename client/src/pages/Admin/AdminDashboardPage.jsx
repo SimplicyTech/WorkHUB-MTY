@@ -186,6 +186,19 @@ function AdminIcon({ name }) {
         <path {...common} d="M4 19h16" />
       </>
     ),
+    search: (
+      <>
+        <circle {...common} cx="10.5" cy="10.5" r="6.5" />
+        <path {...common} d="m16 16 4 4" />
+      </>
+    ),
+    plusBox: (
+      <>
+        <rect {...common} x="5" y="5" width="14" height="14" rx="3" />
+        <path {...common} d="M12 8v8" />
+        <path {...common} d="M8 12h8" />
+      </>
+    ),
   }
 
   return (
@@ -196,14 +209,6 @@ function AdminIcon({ name }) {
 }
 
 // ── Reportes data ────────────────────────────────────────
-const reportesKpis = [
-  { label: 'Total Reservaciones', value: '1,284', detail: '↑ 9% vs semana anterior', accent: 'admin-stat--violet', icon: 'calendar' },
-  { label: 'Tasa Ocupacion', value: '75%', detail: '↑ 5% vs semana anterior', accent: 'admin-stat--outline', icon: null },
-  { label: 'Check-ins Exitosos', value: '1,071', detail: '83% de reservaciones', accent: 'admin-stat--mint', icon: 'checkSquare' },
-  { label: 'No-shows', value: '148', detail: '↓ 3% vs semana anterior', accent: 'admin-stat--rose', icon: 'userSquare' },
-  { label: 'Cancelaciones', value: '65', detail: '5% del total', accent: 'admin-stat--yellow', icon: 'ban' },
-]
-
 const reportesSemana = [
   { day: 'Lun', value: 82 },
   { day: 'Mar', value: 91 },
@@ -214,59 +219,44 @@ const reportesSemana = [
   { day: 'Dom', value: 18 },
 ]
 
-const reportesDept = [
-  { dept: 'Tecnologia', value: 94, color: '#b100ff' },
-  { dept: 'Finanzas', value: 78, color: '#16e0a3' },
-  { dept: 'Operaciones', value: 67, color: '#ffe93b' },
-  { dept: 'RRHH', value: 55, color: '#ff3153' },
-  { dept: 'Marketing', value: 48, color: '#a100ff' },
-  { dept: 'Legal', value: 32, color: '#9d89b8' },
-]
-
-const reportesHistorial = [
-  { id: 'RPT-0041', periodo: 'Abr 21–27', tipo: 'Ocupacion', espacios: 248, pct: '75%', checkIns: 1071, noShows: 148, estado: 'Completado' },
-  { id: 'RPT-0040', periodo: 'Abr 14–20', tipo: 'Ocupacion', espacios: 248, pct: '71%', checkIns: 998, noShows: 162, estado: 'Completado' },
-  { id: 'RPT-0039', periodo: 'Abr 7–13', tipo: 'Ocupacion', espacios: 248, pct: '68%', checkIns: 944, noShows: 180, estado: 'Completado' },
-  { id: 'RPT-0038', periodo: 'Mar 31–Abr 6', tipo: 'Departamento', espacios: 248, pct: '73%', checkIns: 1022, noShows: 155, estado: 'Completado' },
-  { id: 'RPT-0037', periodo: 'Mar 24–30', tipo: 'Departamento', espacios: 248, pct: '69%', checkIns: 965, noShows: 171, estado: 'Archivado' },
-]
-
-// ── Espacios data ─────────────────────────────────────────
-const espaciosResumen = [
-  { label: 'Total Espacios', value: '248', accent: 'admin-stat--violet', icon: 'desktop' },
-  { label: 'Libres', value: '52', accent: 'admin-stat--mint', icon: 'checkSquare' },
-  { label: 'Ocupados', value: '187', accent: 'admin-stat--rose', icon: 'userSquare' },
-  { label: 'Bloqueados', value: '9', accent: 'admin-stat--yellow', icon: 'lock' },
-]
-
 const espaciosList = [
-  { id: 'D-101', tipo: 'Escritorio', piso: 'Piso 1', zona: 'Area General', estado: 'Libre', usuario: '—' },
-  { id: 'D-102', tipo: 'Escritorio', piso: 'Piso 1', zona: 'Area General', estado: 'Ocupado', usuario: 'Carlos P.' },
-  { id: 'D-103', tipo: 'Escritorio', piso: 'Piso 1', zona: 'Area General', estado: 'Bloqueado', usuario: 'Mantenimiento' },
-  { id: 'S-201', tipo: 'Sala', piso: 'Piso 2', zona: 'Sala Conferencias', estado: 'Ocupado', usuario: 'Equipo Tech' },
-  { id: 'D-202', tipo: 'Escritorio', piso: 'Piso 2', zona: 'Area General', estado: 'Libre', usuario: '—' },
-  { id: 'D-301', tipo: 'Escritorio', piso: 'Piso 3', zona: 'Hot Desking', estado: 'Ocupado', usuario: 'Maria L.' },
-  { id: 'D-302', tipo: 'Escritorio', piso: 'Piso 3', zona: 'Hot Desking', estado: 'Libre', usuario: '—' },
-  { id: 'D-303', tipo: 'Escritorio', piso: 'Piso 3', zona: 'Area General', estado: 'Ocupado', usuario: 'Gilberto R.' },
-  { id: 'S-401', tipo: 'Sala', piso: 'Piso 4', zona: 'Sala Conferencias', estado: 'Libre', usuario: '—' },
-  { id: 'C-001', tipo: 'Cajon', piso: 'Sotano', zona: 'Estacionamiento', estado: 'Ocupado', usuario: 'Laura V.' },
+  { id: 'D-301', tipo: 'Escritorio', piso: 'Piso 3', zona: 'Area General', estado: 'Activo' },
+  { id: 'D-302', tipo: 'Escritorio', piso: 'Piso 3', zona: 'Area General', estado: 'Activo' },
+  { id: 'D-105', tipo: 'Escritorio', piso: 'Piso 1', zona: 'Area General', estado: 'Bloqueado' },
+  { id: 'A-05', tipo: 'Cajon Estac.', piso: 'B1', zona: 'Fila A', estado: 'Activo' },
+  { id: 'D-410', tipo: 'Escritorio', piso: 'Piso 4', zona: 'Hot Desking', estado: 'Inactivo' },
+  { id: 'D-504', tipo: 'Escritorio', piso: 'Piso 5', zona: 'Sala Conf.', estado: 'Activo' },
+]
+
+const usuariosList = [
+  { id: 'U-1024', nombre: 'Ana Martinez', email: 'ana.martinez@accenture.com', rol: 'Admin', depto: 'Operaciones', estado: 'Activo' },
+  { id: 'U-1018', nombre: 'Gilberto R.', email: 'gilberto.r@accenture.com', rol: 'Usuario', depto: 'Tecnologia', estado: 'Activo' },
+  { id: 'U-1007', nombre: 'Maria L.', email: 'maria.l@accenture.com', rol: 'Usuario', depto: 'Finanzas', estado: 'Activo' },
+  { id: 'U-0998', nombre: 'Carlos P.', email: 'carlos.p@accenture.com', rol: 'Usuario', depto: 'Legal', estado: 'Bloqueado' },
+  { id: 'U-0975', nombre: 'Laura V.', email: 'laura.v@accenture.com', rol: 'Supervisor', depto: 'RRHH', estado: 'Activo' },
+  { id: 'U-0961', nombre: 'Pedro S.', email: 'pedro.s@accenture.com', rol: 'Usuario', depto: 'Marketing', estado: 'Inactivo' },
+]
+
+const reportZones = [
+  { zona: 'Area General', piso: 'P3', pct: '91%', tone: 'hot' },
+  { zona: 'Area General', piso: 'P1', pct: '85%', tone: 'hot' },
+  { zona: 'Hot Desking', piso: 'P4', pct: '45%', tone: 'mint' },
+  { zona: 'Sala Conf.', piso: 'P5', pct: '52%', tone: 'mint' },
 ]
 
 function ReportesView() {
   return (
-    <main className="admin-main">
+    <main className="admin-main admin-main--reports">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// admin_reportes</span>
-          <h1>REPORTES</h1>
+          <span className="admin-main__eyebrow">// reportes</span>
+          <h1>REPORTES Y ANALITICA</h1>
         </div>
         <div className="admin-main__actions">
-          <select className="admin-select" defaultValue="semana">
-            <option value="hoy">Hoy</option>
-            <option value="semana">Esta semana</option>
-            <option value="mes">Este mes</option>
-            <option value="trimestre">Trimestre</option>
-          </select>
+          <button type="button" className="admin-btn-export admin-btn-export--primary">
+            <AdminIcon name="download" />
+            Exportar PDF
+          </button>
           <button type="button" className="admin-btn-export">
             <AdminIcon name="download" />
             Exportar CSV
@@ -274,146 +264,136 @@ function ReportesView() {
         </div>
       </header>
 
-      <section className="admin-stats admin-stats--5">
-        {reportesKpis.map((k) => (
-          <article key={k.label} className={`admin-stat ${k.accent}`}>
-            <div className="admin-stat__top">
-              <span>{k.label}</span>
-              {k.icon ? <AdminIcon name={k.icon} /> : null}
-            </div>
-            <div className="admin-stat__bottom">
-              <strong>{k.value}</strong>
-              <span>{k.detail}</span>
-            </div>
-          </article>
-        ))}
+      <section className="admin-filterbar admin-filterbar--reports">
+        <button type="button" className="admin-filter-chip">01/Feb/2026</button>
+        <span className="admin-filterbar__arrow">→</span>
+        <button type="button" className="admin-filter-chip">28/Feb/2026</button>
+        <select className="admin-select" defaultValue="todos">
+          <option value="todos">Todos los pisos</option>
+        </select>
+        <select className="admin-select" defaultValue="tipo">
+          <option value="tipo">Tipo: Todos</option>
+        </select>
       </section>
 
-      <section className="admin-grid admin-grid--2col">
-        <article className="admin-card">
+      <section className="admin-reports-layout">
+        <article className="admin-card admin-card--average">
           <div className="admin-card__header">
-            <h2>Reservaciones por Dia</h2>
-            <span className="admin-pill">esta semana</span>
+            <h2>Ocupacion Promedio</h2>
+            <div className="admin-segmented" aria-label="Rango de tiempo">
+              <button type="button" className="is-active">Dia</button>
+              <button type="button">Semana</button>
+              <button type="button">Mes</button>
+            </div>
           </div>
-          <div className="admin-weekly">
-            {reportesSemana.map((d) => (
-              <div key={d.day} className="admin-weekly__col">
-                <div className="admin-weekly__track">
-                  <div className="admin-weekly__bar" style={{ height: `${d.value}%` }} />
-                </div>
-                <span className="admin-weekly__label">{d.day}</span>
-                <span className="admin-weekly__val">{d.value}%</span>
-              </div>
+          <div className="admin-scatter">
+            {reportesSemana.map((d, index) => (
+              <span
+                key={d.day}
+                className="admin-scatter__point"
+                style={{
+                  left: `${4 + index * 6}%`,
+                  top: `${31 - Math.min(d.value, 95) * 0.18}%`,
+                }}
+              />
             ))}
-          </div>
-        </article>
-
-        <article className="admin-card">
-          <div className="admin-card__header">
-            <h2>Uso por Departamento</h2>
-            <span className="admin-pill">semana actual</span>
-          </div>
-          <div className="admin-dept">
-            {reportesDept.map((d) => (
-              <div key={d.dept} className="admin-dept__row">
-                <span className="admin-dept__name">{d.dept}</span>
-                <div className="admin-dept__track">
-                  <div className="admin-dept__fill" style={{ width: `${d.value}%`, background: d.color }} />
-                </div>
-                <span className="admin-dept__val">{d.value}%</span>
-              </div>
-            ))}
-          </div>
-        </article>
-      </section>
-
-      <section className="admin-card" style={{ marginTop: '1.2rem' }}>
-        <div className="admin-card__header">
-          <h2>Historial de Reportes</h2>
-        </div>
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Periodo</th>
-                <th>Tipo</th>
-                <th>Espacios</th>
-                <th>% Ocupacion</th>
-                <th>Check-ins</th>
-                <th>No-shows</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reportesHistorial.map((r) => (
-                <tr key={r.id}>
-                  <td className="admin-table__id">{r.id}</td>
-                  <td>{r.periodo}</td>
-                  <td><span className="admin-badge admin-badge--tipo">{r.tipo}</span></td>
-                  <td>{r.espacios}</td>
-                  <td className="admin-table__pct">{r.pct}</td>
-                  <td className="admin-table__mint">{r.checkIns.toLocaleString()}</td>
-                  <td className="admin-table__rose">{r.noShows}</td>
-                  <td>
-                    <span className={`admin-badge ${r.estado === 'Completado' ? 'admin-badge--ok' : 'admin-badge--arch'}`}>
-                      {r.estado}
-                    </span>
-                  </td>
-                </tr>
+            <div className="admin-scatter__labels">
+              {reportesSemana.map((d) => (
+                <span key={d.day}>{d.day}</span>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          </div>
+        </article>
+
+        <article className="admin-card admin-card--no-shows">
+          <div className="admin-card__header">
+            <h2>Tasa de No-Shows</h2>
+          </div>
+          <strong className="admin-no-show__value">6.2%</strong>
+          <p className="admin-no-show__trend">↘ ↓ 1.3% vs mes anterior</p>
+          <p className="admin-no-show__detail">15 no-shows en Feb 2026</p>
+          <div className="admin-no-show__floors">
+            <span>Por piso:</span>
+            <div><small>P3</small><i style={{ width: '86%' }} /></div>
+            <div><small>P1</small><i style={{ width: '72%' }} /></div>
+          </div>
+        </article>
+
+        <article className="admin-card admin-card--demand">
+          <div className="admin-card__header">
+            <h2>Horarios de Mayor Demanda</h2>
+          </div>
+          <div className="admin-demand-chart">
+            {['07:00', '08:00', '09:00', '10:00', '11:00'].map((hour) => (
+              <div key={hour} className="admin-demand-chart__row">
+                <span>{hour}</span>
+                <i />
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="admin-card admin-card--zones-used">
+          <div className="admin-card__header">
+            <h2>Zonas Mas / Menos Utilizadas</h2>
+          </div>
+          <div className="admin-zone-table">
+            <div className="admin-zone-table__head">
+              <span>Zona</span>
+              <span>Piso</span>
+              <span>%</span>
+            </div>
+            {reportZones.map((zone) => (
+              <div key={`${zone.zona}-${zone.piso}`} className="admin-zone-table__row">
+                <span>{zone.zona}</span>
+                <span>{zone.piso}</span>
+                <strong className={zone.tone === 'hot' ? 'is-hot' : 'is-mint'}>{zone.pct}</strong>
+              </div>
+            ))}
+          </div>
+        </article>
       </section>
+
+      <button type="button" className="admin-fab" aria-label="Abrir soporte">
+        <AdminIcon name="message" />
+      </button>
     </main>
   )
 }
 
 function EspaciosView() {
   return (
-    <main className="admin-main">
+    <main className="admin-main admin-main--management">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// admin_espacios</span>
+          <span className="admin-main__eyebrow">// gestion_espacios</span>
           <h1>GESTION DE ESPACIOS</h1>
         </div>
         <div className="admin-main__actions">
-          <select className="admin-select" defaultValue="todos">
-            <option value="todos">Todos los pisos</option>
-            <option value="1">Piso 1</option>
-            <option value="2">Piso 2</option>
-            <option value="3">Piso 3</option>
-            <option value="4">Piso 4</option>
-          </select>
-          <select className="admin-select" defaultValue="todos-estados">
-            <option value="todos-estados">Todos los estados</option>
-            <option value="libre">Libre</option>
-            <option value="ocupado">Ocupado</option>
-            <option value="bloqueado">Bloqueado</option>
-          </select>
+          <button type="button" className="admin-btn-export admin-btn-export--primary">
+            <AdminIcon name="plusBox" />
+            Agregar Espacio
+          </button>
         </div>
       </header>
 
-      <section className="admin-stats admin-stats--4">
-        {espaciosResumen.map((e) => (
-          <article key={e.label} className={`admin-stat ${e.accent}`}>
-            <div className="admin-stat__top">
-              <span>{e.label}</span>
-              <AdminIcon name={e.icon} />
-            </div>
-            <div className="admin-stat__bottom">
-              <strong>{e.value}</strong>
-            </div>
-          </article>
-        ))}
+      <section className="admin-management-tools">
+        <label className="admin-search">
+          <AdminIcon name="search" />
+          <input type="search" placeholder="Buscar por ID o nombre..." />
+        </label>
+        <select className="admin-select" defaultValue="tipo">
+          <option value="tipo">Tipo: Todos</option>
+        </select>
+        <select className="admin-select" defaultValue="piso">
+          <option value="piso">Piso: Todos</option>
+        </select>
+        <select className="admin-select" defaultValue="estado">
+          <option value="estado">Estado: Todos</option>
+        </select>
       </section>
 
-      <section className="admin-card" style={{ marginTop: '1.2rem' }}>
-        <div className="admin-card__header">
-          <h2>Listado de Espacios</h2>
-          <span className="admin-pill">248 total</span>
-        </div>
+      <section className="admin-card admin-card--management-table">
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
@@ -423,8 +403,7 @@ function EspaciosView() {
                 <th>Piso</th>
                 <th>Zona</th>
                 <th>Estado</th>
-                <th>Usuario / Detalle</th>
-                <th>Accion</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -436,23 +415,130 @@ function EspaciosView() {
                   <td>{e.zona}</td>
                   <td>
                     <span className={`admin-badge ${
-                      e.estado === 'Libre' ? 'admin-badge--ok' :
-                      e.estado === 'Ocupado' ? 'admin-badge--rose' :
+                      e.estado === 'Activo' ? 'admin-badge--ok' :
+                      e.estado === 'Inactivo' ? 'admin-badge--rose' :
                       'admin-badge--yellow'
                     }`}>{e.estado}</span>
                   </td>
-                  <td>{e.usuario}</td>
                   <td>
-                    <button type="button" className="admin-btn-ghost-sm">
-                      {e.estado === 'Bloqueado' ? 'Desbloquear' : 'Bloquear'}
-                    </button>
+                    <div className="admin-table-actions">
+                      <button type="button" className="admin-btn-ghost-sm">Editar</button>
+                      <button type="button" className={e.estado === 'Activo' ? 'admin-btn-danger-sm' : 'admin-btn-ghost-sm'}>
+                        {e.estado === 'Activo' ? 'Desactivar' : 'Activar'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        <div className="admin-pagination">
+          <span>Mostrando 1-6 de 296 espacios</span>
+          <div>
+            <button type="button" className="is-active">1</button>
+            <button type="button">2</button>
+            <button type="button">3</button>
+            <button type="button">→</button>
+          </div>
+        </div>
       </section>
+
+      <button type="button" className="admin-fab" aria-label="Abrir soporte">
+        <AdminIcon name="message" />
+      </button>
+    </main>
+  )
+}
+
+function UsuariosView() {
+  return (
+    <main className="admin-main admin-main--management">
+      <header className="admin-main__header">
+        <div>
+          <span className="admin-main__eyebrow">// gestion_usuarios</span>
+          <h1>GESTION DE USUARIOS</h1>
+        </div>
+        <div className="admin-main__actions">
+          <button type="button" className="admin-btn-export admin-btn-export--primary">
+            <AdminIcon name="plusBox" />
+            Agregar Usuario
+          </button>
+        </div>
+      </header>
+
+      <section className="admin-management-tools admin-management-tools--users">
+        <label className="admin-search">
+          <AdminIcon name="search" />
+          <input type="search" placeholder="Buscar por nombre o correo..." />
+        </label>
+        <select className="admin-select" defaultValue="rol">
+          <option value="rol">Rol: Todos</option>
+        </select>
+        <select className="admin-select" defaultValue="depto">
+          <option value="depto">Depto: Todos</option>
+        </select>
+        <select className="admin-select" defaultValue="estado">
+          <option value="estado">Estado: Todos</option>
+        </select>
+      </section>
+
+      <section className="admin-card admin-card--management-table">
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Rol</th>
+                <th>Depto.</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usuariosList.map((u) => (
+                <tr key={u.id}>
+                  <td className="admin-table__id">{u.id}</td>
+                  <td>{u.nombre}</td>
+                  <td>{u.email}</td>
+                  <td>{u.rol}</td>
+                  <td>{u.depto}</td>
+                  <td>
+                    <span className={`admin-badge ${
+                      u.estado === 'Activo' ? 'admin-badge--ok' :
+                      u.estado === 'Inactivo' ? 'admin-badge--rose' :
+                      'admin-badge--yellow'
+                    }`}>{u.estado}</span>
+                  </td>
+                  <td>
+                    <div className="admin-table-actions">
+                      <button type="button" className="admin-btn-ghost-sm">Editar</button>
+                      <button type="button" className={u.estado === 'Activo' ? 'admin-btn-danger-sm' : 'admin-btn-ghost-sm'}>
+                        {u.estado === 'Activo' ? 'Desactivar' : 'Activar'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="admin-pagination">
+          <span>Mostrando 1-6 de 128 usuarios</span>
+          <div>
+            <button type="button" className="is-active">1</button>
+            <button type="button">2</button>
+            <button type="button">3</button>
+            <button type="button">→</button>
+          </div>
+        </div>
+      </section>
+
+      <button type="button" className="admin-fab" aria-label="Abrir soporte">
+        <AdminIcon name="message" />
+      </button>
     </main>
   )
 }
@@ -606,6 +692,7 @@ export default function AdminDashboardPage() {
       )}
       {activePage === 'Reportes' && <ReportesView />}
       {activePage === 'Espacios' && <EspaciosView />}
+      {activePage === 'Usuarios' && <UsuariosView />}
     </div>
   )
 }
