@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import './AdminDashboard.css'
 
 const sidebarItems = [
-  { label: 'Dashboard', icon: 'stack', active: true },
+  { label: 'Dashboard', icon: 'stack' },
   { label: 'Reportes', icon: 'bars' },
   { label: 'Espacios', icon: 'square' },
   { label: 'Usuarios', icon: 'user' },
@@ -179,6 +180,12 @@ function AdminIcon({ name }) {
         <path {...common} d="M5 6.5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10l-5 3v-3H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z" />
       </>
     ),
+    download: (
+      <>
+        <path {...common} d="M12 4v12M8 12l4 4 4-4" />
+        <path {...common} d="M4 19h16" />
+      </>
+    ),
   }
 
   return (
@@ -188,7 +195,270 @@ function AdminIcon({ name }) {
   )
 }
 
+// ── Reportes data ────────────────────────────────────────
+const reportesKpis = [
+  { label: 'Total Reservaciones', value: '1,284', detail: '↑ 9% vs semana anterior', accent: 'admin-stat--violet', icon: 'calendar' },
+  { label: 'Tasa Ocupacion', value: '75%', detail: '↑ 5% vs semana anterior', accent: 'admin-stat--outline', icon: null },
+  { label: 'Check-ins Exitosos', value: '1,071', detail: '83% de reservaciones', accent: 'admin-stat--mint', icon: 'checkSquare' },
+  { label: 'No-shows', value: '148', detail: '↓ 3% vs semana anterior', accent: 'admin-stat--rose', icon: 'userSquare' },
+  { label: 'Cancelaciones', value: '65', detail: '5% del total', accent: 'admin-stat--yellow', icon: 'ban' },
+]
+
+const reportesSemana = [
+  { day: 'Lun', value: 82 },
+  { day: 'Mar', value: 91 },
+  { day: 'Mie', value: 78 },
+  { day: 'Jue', value: 95 },
+  { day: 'Vie', value: 70 },
+  { day: 'Sab', value: 34 },
+  { day: 'Dom', value: 18 },
+]
+
+const reportesDept = [
+  { dept: 'Tecnologia', value: 94, color: '#b100ff' },
+  { dept: 'Finanzas', value: 78, color: '#16e0a3' },
+  { dept: 'Operaciones', value: 67, color: '#ffe93b' },
+  { dept: 'RRHH', value: 55, color: '#ff3153' },
+  { dept: 'Marketing', value: 48, color: '#a100ff' },
+  { dept: 'Legal', value: 32, color: '#9d89b8' },
+]
+
+const reportesHistorial = [
+  { id: 'RPT-0041', periodo: 'Abr 21–27', tipo: 'Ocupacion', espacios: 248, pct: '75%', checkIns: 1071, noShows: 148, estado: 'Completado' },
+  { id: 'RPT-0040', periodo: 'Abr 14–20', tipo: 'Ocupacion', espacios: 248, pct: '71%', checkIns: 998, noShows: 162, estado: 'Completado' },
+  { id: 'RPT-0039', periodo: 'Abr 7–13', tipo: 'Ocupacion', espacios: 248, pct: '68%', checkIns: 944, noShows: 180, estado: 'Completado' },
+  { id: 'RPT-0038', periodo: 'Mar 31–Abr 6', tipo: 'Departamento', espacios: 248, pct: '73%', checkIns: 1022, noShows: 155, estado: 'Completado' },
+  { id: 'RPT-0037', periodo: 'Mar 24–30', tipo: 'Departamento', espacios: 248, pct: '69%', checkIns: 965, noShows: 171, estado: 'Archivado' },
+]
+
+// ── Espacios data ─────────────────────────────────────────
+const espaciosResumen = [
+  { label: 'Total Espacios', value: '248', accent: 'admin-stat--violet', icon: 'desktop' },
+  { label: 'Libres', value: '52', accent: 'admin-stat--mint', icon: 'checkSquare' },
+  { label: 'Ocupados', value: '187', accent: 'admin-stat--rose', icon: 'userSquare' },
+  { label: 'Bloqueados', value: '9', accent: 'admin-stat--yellow', icon: 'lock' },
+]
+
+const espaciosList = [
+  { id: 'D-101', tipo: 'Escritorio', piso: 'Piso 1', zona: 'Area General', estado: 'Libre', usuario: '—' },
+  { id: 'D-102', tipo: 'Escritorio', piso: 'Piso 1', zona: 'Area General', estado: 'Ocupado', usuario: 'Carlos P.' },
+  { id: 'D-103', tipo: 'Escritorio', piso: 'Piso 1', zona: 'Area General', estado: 'Bloqueado', usuario: 'Mantenimiento' },
+  { id: 'S-201', tipo: 'Sala', piso: 'Piso 2', zona: 'Sala Conferencias', estado: 'Ocupado', usuario: 'Equipo Tech' },
+  { id: 'D-202', tipo: 'Escritorio', piso: 'Piso 2', zona: 'Area General', estado: 'Libre', usuario: '—' },
+  { id: 'D-301', tipo: 'Escritorio', piso: 'Piso 3', zona: 'Hot Desking', estado: 'Ocupado', usuario: 'Maria L.' },
+  { id: 'D-302', tipo: 'Escritorio', piso: 'Piso 3', zona: 'Hot Desking', estado: 'Libre', usuario: '—' },
+  { id: 'D-303', tipo: 'Escritorio', piso: 'Piso 3', zona: 'Area General', estado: 'Ocupado', usuario: 'Gilberto R.' },
+  { id: 'S-401', tipo: 'Sala', piso: 'Piso 4', zona: 'Sala Conferencias', estado: 'Libre', usuario: '—' },
+  { id: 'C-001', tipo: 'Cajon', piso: 'Sotano', zona: 'Estacionamiento', estado: 'Ocupado', usuario: 'Laura V.' },
+]
+
+function ReportesView() {
+  return (
+    <main className="admin-main">
+      <header className="admin-main__header">
+        <div>
+          <span className="admin-main__eyebrow">// admin_reportes</span>
+          <h1>REPORTES</h1>
+        </div>
+        <div className="admin-main__actions">
+          <select className="admin-select" defaultValue="semana">
+            <option value="hoy">Hoy</option>
+            <option value="semana">Esta semana</option>
+            <option value="mes">Este mes</option>
+            <option value="trimestre">Trimestre</option>
+          </select>
+          <button type="button" className="admin-btn-export">
+            <AdminIcon name="download" />
+            Exportar CSV
+          </button>
+        </div>
+      </header>
+
+      <section className="admin-stats admin-stats--5">
+        {reportesKpis.map((k) => (
+          <article key={k.label} className={`admin-stat ${k.accent}`}>
+            <div className="admin-stat__top">
+              <span>{k.label}</span>
+              {k.icon ? <AdminIcon name={k.icon} /> : null}
+            </div>
+            <div className="admin-stat__bottom">
+              <strong>{k.value}</strong>
+              <span>{k.detail}</span>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <section className="admin-grid admin-grid--2col">
+        <article className="admin-card">
+          <div className="admin-card__header">
+            <h2>Reservaciones por Dia</h2>
+            <span className="admin-pill">esta semana</span>
+          </div>
+          <div className="admin-weekly">
+            {reportesSemana.map((d) => (
+              <div key={d.day} className="admin-weekly__col">
+                <div className="admin-weekly__track">
+                  <div className="admin-weekly__bar" style={{ height: `${d.value}%` }} />
+                </div>
+                <span className="admin-weekly__label">{d.day}</span>
+                <span className="admin-weekly__val">{d.value}%</span>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="admin-card">
+          <div className="admin-card__header">
+            <h2>Uso por Departamento</h2>
+            <span className="admin-pill">semana actual</span>
+          </div>
+          <div className="admin-dept">
+            {reportesDept.map((d) => (
+              <div key={d.dept} className="admin-dept__row">
+                <span className="admin-dept__name">{d.dept}</span>
+                <div className="admin-dept__track">
+                  <div className="admin-dept__fill" style={{ width: `${d.value}%`, background: d.color }} />
+                </div>
+                <span className="admin-dept__val">{d.value}%</span>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="admin-card" style={{ marginTop: '1.2rem' }}>
+        <div className="admin-card__header">
+          <h2>Historial de Reportes</h2>
+        </div>
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Periodo</th>
+                <th>Tipo</th>
+                <th>Espacios</th>
+                <th>% Ocupacion</th>
+                <th>Check-ins</th>
+                <th>No-shows</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reportesHistorial.map((r) => (
+                <tr key={r.id}>
+                  <td className="admin-table__id">{r.id}</td>
+                  <td>{r.periodo}</td>
+                  <td><span className="admin-badge admin-badge--tipo">{r.tipo}</span></td>
+                  <td>{r.espacios}</td>
+                  <td className="admin-table__pct">{r.pct}</td>
+                  <td className="admin-table__mint">{r.checkIns.toLocaleString()}</td>
+                  <td className="admin-table__rose">{r.noShows}</td>
+                  <td>
+                    <span className={`admin-badge ${r.estado === 'Completado' ? 'admin-badge--ok' : 'admin-badge--arch'}`}>
+                      {r.estado}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  )
+}
+
+function EspaciosView() {
+  return (
+    <main className="admin-main">
+      <header className="admin-main__header">
+        <div>
+          <span className="admin-main__eyebrow">// admin_espacios</span>
+          <h1>GESTION DE ESPACIOS</h1>
+        </div>
+        <div className="admin-main__actions">
+          <select className="admin-select" defaultValue="todos">
+            <option value="todos">Todos los pisos</option>
+            <option value="1">Piso 1</option>
+            <option value="2">Piso 2</option>
+            <option value="3">Piso 3</option>
+            <option value="4">Piso 4</option>
+          </select>
+          <select className="admin-select" defaultValue="todos-estados">
+            <option value="todos-estados">Todos los estados</option>
+            <option value="libre">Libre</option>
+            <option value="ocupado">Ocupado</option>
+            <option value="bloqueado">Bloqueado</option>
+          </select>
+        </div>
+      </header>
+
+      <section className="admin-stats admin-stats--4">
+        {espaciosResumen.map((e) => (
+          <article key={e.label} className={`admin-stat ${e.accent}`}>
+            <div className="admin-stat__top">
+              <span>{e.label}</span>
+              <AdminIcon name={e.icon} />
+            </div>
+            <div className="admin-stat__bottom">
+              <strong>{e.value}</strong>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <section className="admin-card" style={{ marginTop: '1.2rem' }}>
+        <div className="admin-card__header">
+          <h2>Listado de Espacios</h2>
+          <span className="admin-pill">248 total</span>
+        </div>
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tipo</th>
+                <th>Piso</th>
+                <th>Zona</th>
+                <th>Estado</th>
+                <th>Usuario / Detalle</th>
+                <th>Accion</th>
+              </tr>
+            </thead>
+            <tbody>
+              {espaciosList.map((e) => (
+                <tr key={e.id}>
+                  <td className="admin-table__id">{e.id}</td>
+                  <td>{e.tipo}</td>
+                  <td>{e.piso}</td>
+                  <td>{e.zona}</td>
+                  <td>
+                    <span className={`admin-badge ${
+                      e.estado === 'Libre' ? 'admin-badge--ok' :
+                      e.estado === 'Ocupado' ? 'admin-badge--rose' :
+                      'admin-badge--yellow'
+                    }`}>{e.estado}</span>
+                  </td>
+                  <td>{e.usuario}</td>
+                  <td>
+                    <button type="button" className="admin-btn-ghost-sm">
+                      {e.estado === 'Bloqueado' ? 'Desbloquear' : 'Bloquear'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  )
+}
+
 export default function AdminDashboardPage() {
+  const [activePage, setActivePage] = useState('Dashboard')
   return (
     <div className="admin-dashboard">
       <aside className="admin-sidebar">
@@ -207,7 +477,8 @@ export default function AdminDashboardPage() {
             <button
               key={item.label}
               type="button"
-              className={`admin-nav__item ${item.active ? 'is-active' : ''}`}
+              className={`admin-nav__item ${activePage === item.label ? 'is-active' : ''}`}
+              onClick={() => setActivePage(item.label)}
             >
               <span className="admin-nav__icon">
                 <AdminIcon name={item.icon} />
@@ -226,6 +497,7 @@ export default function AdminDashboardPage() {
         </div>
       </aside>
 
+      {activePage === 'Dashboard' && (
       <main className="admin-main">
         <header className="admin-main__header">
           <div>
@@ -331,6 +603,9 @@ export default function AdminDashboardPage() {
           <AdminIcon name="message" />
         </button>
       </main>
+      )}
+      {activePage === 'Reportes' && <ReportesView />}
+      {activePage === 'Espacios' && <EspaciosView />}
     </div>
   )
 }
