@@ -5,6 +5,7 @@ import MainLayout from './layouts/MainLayout'
 import AppLayout from './layouts/AppLayout'
 import LandingPage from './pages/Landing/LandingPage'
 import LoginPage from './pages/Login/LoginPage'
+import AdminDashboardPage from './pages/Admin/AdminDashboardPage'
 import ReservePage from './pages/Reserve/ReservePage'
 import ParkingPage from './pages/Reserve/ParkingPage'
 import ConfirmationPage from './pages/Reserve/ConfirmationPage'
@@ -19,6 +20,7 @@ function App() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<LandingPage />} />
           </Route>
+          <Route path="/admin" element={<AdminDashboardPage />} />
           <Route element={<AppLayout />}>
             <Route path="/reservar" element={<ReservePage />} />
             <Route path="/estacionamiento" element={<ParkingPage />} />
