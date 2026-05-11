@@ -24,9 +24,6 @@ export default function HowItWorks() {
     <section className="flex flex-col items-center gap-10 md:gap-12 px-4 sm:px-5 md:px-12 py-12 md:py-20">
       {/* Header */}
       <div className="flex flex-col items-center gap-3">
-        <span className="font-mono text-[11px] text-accent font-semibold">
-          // tu_flujo_diario
-        </span>
         <h2 className="font-heading text-3xl md:text-4xl font-bold text-white text-center">
           ASÍ DE FÁCIL ES USARLO
         </h2>

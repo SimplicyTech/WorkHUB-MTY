@@ -106,7 +106,6 @@ export default function ReservePage() {
       {error ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4 text-center px-4">
-            <span className="text-4xl">⚠️</span>
             <p className="font-mono text-sm text-[#ff3246]">{error}</p>
             <button
               onClick={() => fetchAvailability(filtersRef.current)}

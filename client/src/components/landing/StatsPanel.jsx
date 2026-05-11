@@ -12,7 +12,7 @@ export default function StatsPanel() {
   }
 
 
-  const total = data.find(r => r.piso === 'TOTAL')
+  const total = data.find(r => r.Piso === 'TOTAL')
 
   const stats = [
     {
@@ -35,18 +35,18 @@ export default function StatsPanel() {
   ]
 
   const bars = data
-    .filter(r => r.piso !== 'TOTAL')
+    .filter(r => r.Piso !== 'TOTAL')
     .map(r => ({
-      label: `piso_${r.piso}`,
+      label: `piso_${r.Piso}`,
       width: `${Math.round((r.ocupados / r.total) * 100)}%`,
-      color: 'bg-accent'
+      color: 'bg-red-500'
     }))
   return (
     <div className="bg-surface-card rounded-lg p-4 sm:p-6 flex flex-col gap-4">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="font-mono text-[11px] text-text-muted font-semibold">
-          // panel_de_ocupación
+        <span className="font-mono text-[11px] text-text-muted font-semibold uppercase tracking-wide">
+          Panel de ocupación
         </span>
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-accent" />
@@ -75,8 +75,8 @@ export default function StatsPanel() {
 
       {/* Bar Chart */}
       <div className="flex flex-col gap-2">
-        <span className="font-mono text-[9px] text-text-muted">
-          // distribución_por_piso
+        <span className="font-mono text-[9px] text-text-muted uppercase tracking-wide">
+          Distribución por piso
         </span>
 
         {bars.map((bar) => (

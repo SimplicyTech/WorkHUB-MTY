@@ -51,7 +51,6 @@ export default function ConfirmationPage() {
         const res = await createReservacion({
           EmpleadoID: user.empleadoId,
           EspacioID: espacioID,
-          EstatusID: 1, // Activa
           Fecha: date,
           HoraInicio: entryTime,
           HoraFin: exitTime,
@@ -74,12 +73,11 @@ export default function ConfirmationPage() {
     : '—'
 
   const detailRows = [
-    { icon: '🖥️', label: 'Escritorio:', value: deskId },
-    { icon: '📍', label: 'Piso / Zona:', value: 'Piso 3 — Área General' },
-    { icon: '📅', label: 'Fecha:', value: dateLabel },
-    { icon: '⏱', label: 'Horario:', value: timeLabel },
+    { label: 'Escritorio:', value: deskId },
+    { label: 'Piso / Zona:', value: 'Piso 3 — Área General' },
+    { label: 'Fecha:', value: dateLabel },
+    { label: 'Horario:', value: timeLabel },
     {
-      icon: '🚗',
       label: 'Estacionamiento:',
       value: parking ? 'Nivel B1' : 'No solicitado',
     },
@@ -90,9 +88,6 @@ export default function ConfirmationPage() {
       <div className="flex min-h-[calc(100dvh-64px)] flex-col items-center justify-center gap-6 px-4"
         style={{ background: 'linear-gradient(180deg, #000000 0%, #460073 100%)' }}
       >
-        <div className="w-20 h-20 rounded-full border-2 border-[#ff3246] bg-[#ff3246]/20 flex items-center justify-center">
-          <span className="text-[#ff3246] text-4xl">✕</span>
-        </div>
         <h1 className="font-heading text-2xl sm:text-3xl font-bold text-white text-center">
           Error al confirmar
         </h1>
@@ -110,27 +105,18 @@ export default function ConfirmationPage() {
   return (
     <div className="flex min-h-[calc(100dvh-64px)] flex-col">
       {/* Progress Bar — all steps completed */}
-      <div className="bg-surface-card px-4 sm:px-6 md:px-12 py-3 flex flex-wrap items-center gap-2 sm:gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-accent text-sm">✓</span>
-          <span className="font-mono text-[11px] text-accent font-semibold">
-            Escritorio reservado
-          </span>
-        </div>
+      <div className="bg-surface-card px-4 sm:px-6 md:px-12 py-3 flex flex-wrap items-center gap-3 sm:gap-4">
+        <span className="font-mono text-[11px] text-accent font-semibold">
+          Escritorio reservado
+        </span>
         <span className="text-text-muted text-sm">›</span>
-        <div className="flex items-center gap-2">
-          <span className="text-accent text-sm">✓</span>
-          <span className="font-mono text-[11px] text-accent font-semibold">
-            Estacionamiento
-          </span>
-        </div>
+        <span className="font-mono text-[11px] text-accent font-semibold">
+          Estacionamiento
+        </span>
         <span className="text-text-muted text-sm">›</span>
-        <div className="flex items-center gap-2">
-          <span className="text-accent text-sm">✓</span>
-          <span className="font-mono text-[11px] text-accent font-semibold">
-            Confirmación
-          </span>
-        </div>
+        <span className="font-mono text-[11px] text-accent font-semibold">
+          Confirmación
+        </span>
       </div>
 
       {/* Main Content with gradient background */}
@@ -144,19 +130,9 @@ export default function ConfirmationPage() {
         <div className="flex-1" />
 
         {saving ? (
-          <div className="flex flex-col items-center gap-4 animate-pulse">
-            <div className="w-20 h-20 rounded-full border-2 border-primary bg-primary/20 flex items-center justify-center">
-              <span className="text-primary text-3xl">⏳</span>
-            </div>
-            <p className="font-mono text-sm text-text-muted">Creando reservación...</p>
-          </div>
+          <p className="font-mono text-sm text-text-muted animate-pulse">Creando reservación...</p>
         ) : (
           <>
-            {/* Success Icon */}
-            <div className="w-20 h-20 rounded-full border-2 border-accent bg-accent/20 flex items-center justify-center shrink-0 animate-[fadeScaleIn_0.5s_ease-out]">
-              <span className="text-accent text-4xl">✓</span>
-            </div>
-
             {/* Title */}
             <div className="flex flex-col items-center gap-3 animate-[fadeUp_0.6s_ease-out]">
               <h1 className="font-heading text-3xl sm:text-4xl font-bold text-white m-0 text-center">
@@ -174,18 +150,11 @@ export default function ConfirmationPage() {
               <div className="flex flex-col md:flex-row gap-8">
                 {/* Detail Column */}
                 <div className="flex-1 flex flex-col gap-4">
-                  <span className="font-mono text-[10px] text-primary font-semibold">
-                    
-                  </span>
-
                   {detailRows.map((row) => (
                     <div
                       key={row.label}
-                      className="grid grid-cols-[20px_minmax(95px,auto)_1fr] items-center gap-2"
+                      className="grid grid-cols-[minmax(95px,auto)_1fr] items-center gap-2"
                     >
-                      <span className="text-primary text-sm w-5 shrink-0 text-center">
-                        {row.icon}
-                      </span>
                       <span className="font-mono text-xs text-text-muted">
                         {row.label}
                       </span>
@@ -244,13 +213,6 @@ export default function ConfirmationPage() {
         <div className="flex-1" />
       </div>
 
-      {/* Chatbot FAB */}
-      <button
-        className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 w-[52px] h-[52px] rounded-full bg-primary flex items-center justify-center cursor-pointer border-none shadow-[0_4px_20px_rgba(161,0,255,0.4)] hover:shadow-[0_4px_30px_rgba(161,0,255,0.6)] transition-shadow z-50"
-        aria-label="Chatbot"
-      >
-        <span className="text-white text-xl">💬</span>
-      </button>
     </div>
   )
 }

@@ -14,11 +14,14 @@ export function getReservacionesByEmpleado(empleadoId) {
   return apiRequest(`/reservaciones/empleado/${empleadoId}`)
 }
 
+export function getReservacionById(reservacionId) {
+  return apiRequest(`/reservaciones/${reservacionId}`)
+}
+
 export function createReservacion({
   EmpleadoID,
   EspacioID,
   VisitaID,
-  EstatusID,
   Fecha,
   HoraInicio,
   HoraFin,
@@ -26,7 +29,7 @@ export function createReservacion({
 }) {
   return apiRequest('/reservaciones', {
     method: 'POST',
-    body: { EmpleadoID, EspacioID, VisitaID, EstatusID, Fecha, HoraInicio, HoraFin, Descripcion },
+    body: { EmpleadoID, EspacioID, VisitaID, Fecha, HoraInicio, HoraFin, Descripcion },
   })
 }
 

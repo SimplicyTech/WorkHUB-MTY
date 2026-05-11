@@ -119,10 +119,7 @@ export default function FloorMap({ desks, rooms, selectedDesk, onSelectDesk, loa
       <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 relative">
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 rounded-lg">
-            <div className="flex flex-col items-center gap-3 animate-pulse">
-              <span className="text-4xl">🗺️</span>
-              <span className="font-mono text-sm text-white">Cargando mapa...</span>
-            </div>
+            <span className="font-mono text-sm text-white animate-pulse">Cargando mapa...</span>
           </div>
         )}
         <div
