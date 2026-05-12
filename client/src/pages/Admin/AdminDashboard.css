@@ -1199,6 +1199,181 @@
   color: #fff;
 }
 
+/* ── Visitas / Eventos big-stat cards ── */
+.admin-visitas-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 0;
+}
+
+.admin-visitas-stat {
+  background: #21003a;
+  border-radius: 12px;
+  padding: 1.8rem 1.6rem 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-visitas-stat__label {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--admin-muted);
+}
+
+.admin-visitas-stat__value {
+  font-family: var(--font-heading);
+  font-size: clamp(3.5rem, 5vw, 5.5rem);
+  line-height: 1;
+}
+
+/* ── badge dot ── */
+.admin-badge__dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--admin-mint);
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+.admin-badge__dot--yellow { background: var(--admin-yellow); }
+
+/* ghost small mint variant */
+.admin-btn-ghost-sm--mint { color: var(--admin-mint); border-color: rgba(18,224,164,0.35); }
+.admin-btn-ghost-sm--muted { color: var(--admin-muted); border-color: rgba(157,137,184,0.3); }
+
+/* ── Prediccion IA layout ── */
+.admin-main--ia {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-ia-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1.2rem;
+  flex: 1;
+}
+
+.admin-ia-chart-card {
+  min-height: 520px;
+}
+
+.admin-ia-scatter {
+  position: relative;
+  height: 420px;
+  margin-top: 1rem;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #1a003a 0%, #0a0016 100%);
+}
+
+.admin-ia-scatter__point {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #12e0a4;
+  box-shadow: 0 0 16px rgba(18,224,164,0.7);
+  transform: translate(-50%, -50%);
+}
+
+.admin-ia-scatter__capacity {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--admin-red);
+}
+
+.admin-ia-scatter__xaxis {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 0 0.5rem;
+}
+
+.admin-ia-scatter__xaxis span {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--admin-muted);
+  text-align: center;
+}
+
+.admin-ia-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-ia-insights__title {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  margin: 0 0 0.25rem;
+  color: var(--admin-text);
+}
+
+.admin-ia-insight {
+  border-radius: 10px;
+  padding: 1rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-ia-insight--alerta {
+  background: rgba(255,49,83,0.1);
+  border: 1px solid rgba(255,49,83,0.25);
+}
+.admin-ia-insight--mint {
+  background: rgba(18,224,164,0.08);
+  border: 1px solid rgba(18,224,164,0.2);
+}
+.admin-ia-insight--violet {
+  background: rgba(177,0,255,0.08);
+  border: 1px solid rgba(177,0,255,0.2);
+}
+
+.admin-ia-insight__header {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.admin-ia-insight__icon {
+  font-size: 1rem;
+}
+
+.admin-ia-insight--alerta .admin-ia-insight__header strong { color: var(--admin-red); }
+.admin-ia-insight--mint .admin-ia-insight__header strong { color: var(--admin-mint); }
+.admin-ia-insight--violet .admin-ia-insight__header strong { color: #c66aff; }
+
+.admin-ia-insight p {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--admin-muted);
+  line-height: 1.5;
+}
+
+.admin-ia-insight__btn {
+  align-self: flex-start;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid rgba(177,0,255,0.4);
+  border-radius: 6px;
+  background: rgba(177,0,255,0.14);
+  color: #c66aff;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  cursor: pointer;
+  margin-top: 0.25rem;
+}
+
 @media (max-width: 1450px) {
   .admin-stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
