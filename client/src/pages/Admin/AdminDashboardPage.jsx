@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { Navigate } from 'react-router-dom'
+import { useDashboard } from '../../context/useDashboard'
+import { useAuth } from '../../context/useAuth'
 import './AdminDashboard.css'
 
 const sidebarItems = [
@@ -11,80 +14,65 @@ const sidebarItems = [
   { label: 'Prediccion IA', icon: 'diamond' },
 ]
 
-const stats = [
+const emptyStats = [
   {
     label: 'Escritorios',
-    value: '248',
-    detail: 'total',
+    value: '0',
+    detail: 'sin datos',
     accent: 'admin-stat--violet',
     icon: 'desktop',
   },
   {
     label: 'Ocupados',
-    value: '187',
-    detail: '↑ 12% vs ayer',
+    value: '0',
+    detail: 'sin datos',
     accent: 'admin-stat--rose',
     icon: 'userSquare',
   },
   {
     label: 'Disponibles',
-    value: '52',
-    detail: '↓ 8% vs ayer',
+    value: '0',
+    detail: 'sin datos',
     accent: 'admin-stat--mint',
     icon: 'checkSquare',
   },
   {
     label: 'Cajones',
-    value: '48',
-    detail: '26 ocupados',
+    value: '0',
+    detail: 'sin datos',
     accent: 'admin-stat--violet',
     icon: 'car',
   },
   {
     label: '% Ocupacion',
-    value: '75%',
-    detail: '↑ 5% vs ayer',
+    value: '0%',
+    detail: 'sin datos',
     accent: 'admin-stat--outline',
     icon: null,
   },
   {
     label: 'Bloqueados',
-    value: '9',
-    detail: 'mantenimiento',
+    value: '0',
+    detail: 'sin datos',
     accent: 'admin-stat--yellow',
     icon: 'lock',
   },
 ]
 
-const floors = [
-  { label: 'Piso 1', occupied: 85 },
-  { label: 'Piso 2', occupied: 72 },
-  { label: 'Piso 3', occupied: 91 },
-  { label: 'Piso 4', occupied: 58 },
-]
+const loadingStats = emptyStats.map((stat) => ({
+  ...stat,
+  detail: 'cargando',
+}))
 
-const floorRows = [
-  { label: 'Piso 1', value: '85%' },
-  { label: 'Piso 2', value: '72%' },
-  { label: 'Piso 3', value: '91%', accent: true },
-  { label: 'Piso 4', value: '58%' },
-  { label: 'Piso 5', value: '44%' },
-]
+const formatPercent = (value) => `${Math.round(Number(value) || 0)}%`
 
-const zones = [
-  { label: 'Area General', value: '91%', color: '#a100ff' },
-  { label: 'Sala Conferencias', value: '67%', color: '#16e0a3' },
-  { label: 'Hot Desking', value: '45%', color: '#ffe83c' },
-]
-
-const activity = [
-  { text: 'Check-in: D-304 — Gilberto R.', time: '09:02', color: '#16e0a3' },
-  { text: 'Check-in: D-201 — Maria L.', time: '09:05', color: '#16e0a3' },
-  { text: 'No-show: D-105 — Carlos P.', time: '09:15', color: '#ff3355' },
-  { text: 'Liberado: D-105 — auto', time: '09:16', color: '#ffe83c' },
-  { text: 'Check-out: D-402 — Pedro S.', time: '08:55', color: '#a100ff' },
-  { text: 'Check-in: D-310 — Laura V.', time: '08:50', color: '#16e0a3' },
-]
+const activityColor = (status = '') => {
+  const normalized = status.toLowerCase()
+  if (normalized.includes('cancel') || normalized.includes('no-show')) return '#ff3355'
+  if (normalized.includes('liber') || normalized.includes('dispon')) return '#ffe83c'
+  if (normalized.includes('check-out')) return '#a100ff'
+  return '#16e0a3'
+}
 
 function AdminIcon({ name }) {
   const common = {
@@ -828,6 +816,105 @@ function PrediccionIAView() {
 
 export default function AdminDashboardPage() {
   const [activePage, setActivePage] = useState('Dashboard')
+  const { user } = useAuth()
+  const { dashboard, loading, error } = useDashboard()
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  const dashboardStats = dashboard?.stats
+    ? [
+        {
+          label: 'Escritorios',
+          value: String(dashboard.stats.totalSpaces ?? 0),
+          detail: 'total',
+          accent: 'admin-stat--violet',
+          icon: 'desktop',
+        },
+        {
+          label: 'Ocupados',
+          value: String(dashboard.stats.occupiedSpaces ?? 0),
+          detail: 'en uso ahora',
+          accent: 'admin-stat--rose',
+          icon: 'userSquare',
+        },
+        {
+          label: 'Disponibles',
+          value: String(dashboard.stats.availableSpaces ?? 0),
+          detail: 'libres ahora',
+          accent: 'admin-stat--mint',
+          icon: 'checkSquare',
+        },
+        {
+          label: 'Cajones',
+          value: String(dashboard.stats.parkingTotal ?? 0),
+          detail: `${dashboard.stats.parkingOccupied ?? 0} ocupados`,
+          accent: 'admin-stat--violet',
+          icon: 'car',
+        },
+        {
+          label: '% Ocupacion',
+          value: formatPercent(dashboard.stats.occupancyPercent),
+          detail: 'en vivo',
+          accent: 'admin-stat--outline',
+          icon: null,
+        },
+        {
+          label: 'Bloqueados',
+          value: String(dashboard.stats.blockedSpaces ?? 0),
+          detail: 'mantenimiento',
+          accent: 'admin-stat--yellow',
+          icon: 'lock',
+        },
+      ]
+    : loading
+      ? loadingStats
+      : emptyStats
+
+  const dashboardFloors = dashboard?.floors?.length
+    ? dashboard.floors.map((floor) => ({
+        label: floor.label,
+        occupied: Number(floor.occupancyPercent) || 0,
+      }))
+    : []
+
+  const dashboardFloorRows = dashboard?.floors?.length
+    ? dashboard.floors.map((floor) => ({
+        label: floor.label,
+        value: formatPercent(floor.occupancyPercent),
+        accent: floor.label === dashboard.selectedFloor,
+      }))
+    : []
+
+  const dashboardZones = dashboard?.zones?.length
+    ? dashboard.zones.map((zone) => ({
+        label: zone.label,
+        value: formatPercent(zone.value),
+        color: zone.color,
+      }))
+    : []
+
+  const dashboardActivity = dashboard?.recentActivity?.length
+    ? dashboard.recentActivity.map((entry) => ({
+        text: entry.text,
+        time: entry.time,
+        color: activityColor(entry.status),
+      }))
+    : [{
+          text: loading ? 'Cargando datos reales...' : error || 'Sin datos del backend',
+          time: '',
+          color: '#ff3355',
+        }]
+
+  const selectedZonePercent = dashboardZones[0]?.value || '0%'
+  const selectedZoneValue = Number.parseInt(selectedZonePercent, 10) || 0
+  const liveStatus = loading
+    ? 'Cargando datos...'
+    : error
+      ? error
+      : 'En vivo - actualizado'
+
   return (
     <div className="admin-dashboard">
       <aside className="admin-sidebar">
@@ -875,12 +962,12 @@ export default function AdminDashboardPage() {
           </div>
           <div className="admin-main__live">
             <span className="admin-main__dot" />
-            <span>En vivo — Actualizado hace 12s</span>
+            <span>{liveStatus}</span>
           </div>
         </header>
 
         <section className="admin-stats">
-          {stats.map((stat) => (
+          {dashboardStats.map((stat) => (
             <article key={stat.label} className={`admin-stat ${stat.accent}`}>
               <div className="admin-stat__top">
                 <span>{stat.label}</span>
@@ -902,7 +989,7 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="admin-bars">
-              {floors.map((floor) => (
+              {dashboardFloors.map((floor) => (
                 <div key={floor.label} className="admin-bars__item">
                   <div className="admin-bars__track">
                     <div
@@ -919,7 +1006,7 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="admin-floor-list">
-              {floorRows.map((floor) => (
+              {dashboardFloorRows.map((floor) => (
                 <div key={floor.label} className="admin-floor-list__row">
                   <span>{floor.label}</span>
                   <div className="admin-floor-list__bar" />
@@ -932,17 +1019,20 @@ export default function AdminDashboardPage() {
           <article className="admin-card admin-card--zones">
             <div className="admin-card__header admin-card__header--stacked">
               <h2>Ocupacion por Zona</h2>
-              <span>Piso 3 seleccionado</span>
+              <span>{dashboard?.selectedFloor ? `${dashboard.selectedFloor} seleccionado` : 'Piso 3 seleccionado'}</span>
             </div>
 
             <div className="admin-donut">
-              <div className="admin-donut__chart">
-                <div className="admin-donut__inner">91%</div>
+              <div
+                className="admin-donut__chart"
+                style={{ '--admin-donut-value': `${selectedZoneValue}%` }}
+              >
+                <div className="admin-donut__inner">{selectedZonePercent}</div>
               </div>
             </div>
 
             <div className="admin-legend">
-              {zones.map((zone) => (
+              {dashboardZones.map((zone) => (
                 <div key={zone.label} className="admin-legend__item">
                   <span className="admin-legend__dot" style={{ backgroundColor: zone.color }} />
                   <span>{zone.label}: {zone.value}</span>
@@ -957,7 +1047,7 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="admin-activity">
-              {activity.map((entry) => (
+              {dashboardActivity.map((entry) => (
                 <div key={`${entry.text}-${entry.time}`} className="admin-activity__row">
                   <span className="admin-activity__dot" style={{ backgroundColor: entry.color }} />
                   <span className="admin-activity__text">{entry.text}</span>

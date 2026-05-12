@@ -22,14 +22,14 @@ export async function apiRequest(path, { method = 'GET', body, auth = true } = {
       body: body ? JSON.stringify(body) : undefined,
     })
   } catch {
-    throw { error: 'No se pudo conectar al servidor' }
+    throw { error: 'No se pudo conectar al servidor', status: 0 }
   }
 
   const data = await res.json().catch(() => ({}))
 
   if (!res.ok) {
     if (res.status === 401 || res.status === 403) clearToken()
-    throw data.error ? data : { error: 'Error en la solicitud' }
+    throw data.error ? { ...data, status: res.status } : { error: 'Error en la solicitud', status: res.status }
   }
 
   return data
