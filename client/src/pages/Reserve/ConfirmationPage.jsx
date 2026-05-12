@@ -48,6 +48,7 @@ export default function ConfirmationPage() {
       }
 
       try {
+        // El backend ya hace auto-asignación de estacionamiento
         const res = await createReservacion({
           EmpleadoID: user.empleadoId,
           EspacioID: espacioID,
@@ -60,7 +61,13 @@ export default function ConfirmationPage() {
         setReservationData(res.data)
         setSaving(false)
       } catch (err) {
-        setError(err?.error || 'Error al crear la reservación')
+        // Verificar si es un error de reservación solapada
+        if (err?.reservacionExistente) {
+          const { reservacionExistente } = err
+          setError(`Ya tienes una reservación para el ${reservacionExistente.Fecha} de ${reservacionExistente.HoraInicio} a ${reservacionExistente.HoraFin}`)
+        } else {
+          setError(err?.error || 'Error al crear la reservación')
+        }
         setSaving(false)
       }
     }
@@ -79,7 +86,11 @@ export default function ConfirmationPage() {
     { label: 'Horario:', value: timeLabel },
     {
       label: 'Estacionamiento:',
-      value: parking ? 'Nivel B1' : 'No solicitado',
+      value: reservationData?.EstacionamientoAsignado
+        ? `${reservationData.EstacionamientoAsignado.Nombre} (${reservationData.EstacionamientoAsignado.Capacidad} lugares)`
+        : parking
+          ? 'No disponible'
+          : 'No solicitado',
     },
   ]
 
