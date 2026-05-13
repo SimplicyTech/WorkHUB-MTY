@@ -18,7 +18,7 @@ export default function LoginPage() {
     const result = await login(email, password)
     setSubmitting(false)
     if (result.success) {
-      navigate('/')
+      navigate(result.rolId === 5 ? '/ReadQR' : '/')
     } else {
       setError(result.error)
     }

@@ -41,7 +41,7 @@ export function AuthProvider({ children }) {
       setToken(res.token)
       localStorage.setItem(USER_KEY, JSON.stringify(userData))
       setUser(userData)
-      return { success: true }
+      return { success: true, rolId: userData.rolId } 
     } catch (err) {
       return { success: false, error: err?.error || 'Credenciales incorrectas' }
     }
