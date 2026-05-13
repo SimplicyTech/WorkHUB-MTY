@@ -11,6 +11,7 @@ import ParkingPage from './pages/Reserve/ParkingPage'
 import ConfirmationPage from './pages/Reserve/ConfirmationPage'
 import MyReservationsPage from './pages/Reserve/MyReservationsPage'
 import ReservationDetailPage from './pages/Reserve/ReservationDetailPage'
+import ReadQRPage from './pages/ReadQR/Readqr'
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
             <Route path="/confirmacion" element={<ConfirmationPage />} />
             <Route path="/mis-reservaciones" element={<MyReservationsPage />} />
             <Route path="/mis-reservaciones/:id" element={<ReservationDetailPage />} />
+            <Route path="/ReadQR" element={<ReadQRPage />} />
           </Route>
           <Route path="/login" element={<LoginPage />} />
         </Routes>
