@@ -2,6 +2,8 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/useAuth'
 import { createReservacion } from '../../services/reservations'
+import Qrgenerator from '../../components/Confirmation/Qrgenerator'
+
 
 function formatDateLabel(dateStr) {
   if (!dateStr) return '—'
@@ -169,11 +171,10 @@ export default function ConfirmationPage() {
                 <div className="flex flex-col items-center justify-center gap-4 w-full md:w-[220px] shrink-0 p-4">
                   {/* QR Code */}
                   <div className="w-[180px] h-[180px] rounded-lg bg-white flex items-center justify-center p-3">
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${reservationId}&bgcolor=FFFFFF&color=000000`}
-                      alt="QR Code de acceso"
-                      className="w-full h-full object-contain"
-                    />
+                    <Qrgenerator
+                    ReservacionID = {reservationData?.ReservacionID}
+                    EmpleadoID={user?.empleadoId}
+                    size={160}/>
                   </div>
                   <span className="font-mono text-[10px] text-text-muted text-center">
                     Código QR de acceso

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getReservacionById, cancelReservacion } from '../../services/reservations'
+import Qrgenerator from '../../components/Confirmation/Qrgenerator'
 
 const GRACE_MINUTES = 10
 
@@ -260,11 +261,10 @@ export default function ReservationDetailPage() {
           {/* Right column — QR */}
           <aside className="flex flex-col gap-4 rounded-xl bg-[#1a0033] p-6">
             <div className="flex aspect-square w-full items-center justify-center rounded-xl bg-white p-3">
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${code}&bgcolor=FFFFFF&color=000000`}
-                alt="Código QR de la reservación"
-                className="h-full w-full object-contain"
-              />
+              <Qrgenerator 
+                ReservacionID = {reservation.ReservacionID}
+                EmpleadoID={reservation.EmpleadoID}
+                size={240}/>
             </div>
             <p className="text-center font-mono text-xs font-semibold text-white">{code}</p>
             <p className="text-center font-mono text-[9px] leading-[1.5] text-text-muted">
