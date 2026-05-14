@@ -157,7 +157,11 @@ export default function ReservationDetailPage() {
     : 'Sin asignar'
   const fechaLabel = formatDateLong(reservation.Fecha)
   const horarioLabel = formatTimeRange(reservation.HoraInicio, reservation.HoraFin)
-  const parkingLabel = reservation.Descripcion || 'Sin estacionamiento'
+  const parkingLabel = reservation.EstacionamientoAsignado?.Nombre
+    || reservation.EstacionamientoAsignado?.Etiqueta
+    || reservation.CajonNombre
+    || reservation.Descripcion
+    || 'Sin estacionamiento'
   const code = reservationCode(reservation.ReservacionID)
 
   // Grace period countdown
@@ -193,7 +197,7 @@ export default function ReservationDetailPage() {
                 style={{ backgroundColor: 'rgba(255,50,70,0.20)' }}
               >
                 <p className="font-mono text-[11px] font-semibold text-[#ff3246]">
-                  Período de gracia activo — Haz check-in antes de que se cancele
+                  Periodo de grasa activo — Haz check-in antes de que se cancele
                 </p>
                 <div className="flex items-center justify-center gap-2">
                   <div

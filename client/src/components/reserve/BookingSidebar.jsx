@@ -5,6 +5,25 @@ function getTodayString() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+function getTimeMinutes(time) {
+  const [hours, minutes] = time.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+function getDefaultTimes() {
+  const now = new Date()
+  const entry = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  const later = new Date(now.getTime() + 60 * 60 * 1000)
+  const exit = later.getDate() !== now.getDate()
+    ? '23:59'
+    : `${String(later.getHours()).padStart(2, '0')}:${String(later.getMinutes()).padStart(2, '0')}`
+  return { entry, exit }
+}
+
+function isExitAfterEntry(entryTime, exitTime) {
+  return getTimeMinutes(exitTime) > getTimeMinutes(entryTime)
+}
+
 export default function BookingSidebar({
   selectedDesk,
   onReserve,
@@ -12,22 +31,49 @@ export default function BookingSidebar({
   loadingStats,
   onFiltersChange,
 }) {
+  const defaultTimes = getDefaultTimes()
   const [date, setDate] = useState(getTodayString)
-  const [entryTime, setEntryTime] = useState('09:00')
-  const [exitTime, setExitTime] = useState('18:00')
+  const [entryTime, setEntryTime] = useState(defaultTimes.entry)
+  const [exitTime, setExitTime] = useState(defaultTimes.exit)
   const [floor, setFloor] = useState('piso-3')
   const [reserveFor, setReserveFor] = useState('me')
+  const [timeError, setTimeError] = useState('')
 
   // Notify parent whenever filters change so it can re-fetch availability
   useEffect(() => {
     onFiltersChange?.({ date, entryTime, exitTime, floor, reserveFor })
   }, [date, entryTime, exitTime, floor, reserveFor])
 
+  const validateTimes = (entry, exit) => {
+    const valid = isExitAfterEntry(entry, exit)
+    setTimeError(valid ? '' : 'La hora de salida debe ser después de la hora de llegada.')
+    return valid
+  }
+
   const handleReserve = () => {
+    if (!validateTimes(entryTime, exitTime)) {
+      return
+    }
+
     onReserve?.({ date, entryTime, exitTime, floor, reserveFor })
   }
 
+  const handleEntryTimeChange = (value) => {
+    setEntryTime(value)
+    if (timeError) {
+      validateTimes(value, exitTime)
+    }
+  }
+
+  const handleExitTimeChange = (value) => {
+    setExitTime(value)
+    if (timeError) {
+      validateTimes(entryTime, value)
+    }
+  }
+
   const displayStats = stats || { available: 0, occupied: 0, total: 0 }
+  const isValidTimeRange = isExitAfterEntry(entryTime, exitTime)
 
   return (
     <div className="w-full lg:w-[360px] lg:shrink-0 bg-surface flex flex-col lg:h-full">
@@ -46,7 +92,7 @@ export default function BookingSidebar({
         {/* Reservar para */}
         <div className="flex flex-col gap-1.5">
           <label className="font-mono text-[11px] text-white font-semibold">
-            reservar_para
+            Reservar para
           </label>
           <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
             <button
@@ -75,7 +121,7 @@ export default function BookingSidebar({
         {/* Fecha */}
         <div className="flex flex-col gap-1.5">
           <label className="font-mono text-[11px] text-white font-semibold">
-            fecha
+            Fecha
           </label>
           <div className="relative">
             <input
@@ -92,36 +138,42 @@ export default function BookingSidebar({
         <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
           <div className="flex min-w-0 flex-col gap-1.5">
             <label className="font-mono text-[11px] text-white font-semibold">
-              hora_entrada
+              Hora Entrada
             </label>
             <div className="relative">
               <input
                 type="time"
                 value={entryTime}
-                onChange={(e) => setEntryTime(e.target.value)}
+                onChange={(e) => handleEntryTimeChange(e.target.value)}
                 className="w-full h-11 px-3 pr-8 rounded-lg bg-surface-badge font-mono text-[13px] text-white border-none outline-none cursor-pointer [color-scheme:dark]"
               />
             </div>
           </div>
           <div className="flex min-w-0 flex-col gap-1.5">
             <label className="font-mono text-[11px] text-white font-semibold">
-              hora_salida
+              Hora Salida
             </label>
             <div className="relative">
               <input
                 type="time"
                 value={exitTime}
-                onChange={(e) => setExitTime(e.target.value)}
+                min={entryTime}
+                onChange={(e) => handleExitTimeChange(e.target.value)}
                 className="w-full h-11 px-3 pr-8 rounded-lg bg-surface-badge font-mono text-[13px] text-white border-none outline-none cursor-pointer [color-scheme:dark]"
               />
             </div>
           </div>
         </div>
+        {timeError && (
+          <p className="font-mono text-[11px] text-red-400">
+            {timeError}
+          </p>
+        )}
 
         {/* Piso */}
         <div className="flex flex-col gap-1.5">
           <label className="font-mono text-[11px] text-white font-semibold">
-            piso
+            Piso
           </label>
           <div className="relative">
             <select
@@ -185,9 +237,9 @@ export default function BookingSidebar({
       <div className="bg-surface-card px-4 sm:px-6 py-4 flex flex-col gap-2 lg:shrink-0">
         <button
           onClick={handleReserve}
-          disabled={!selectedDesk}
+          disabled={!selectedDesk || !isValidTimeRange}
           className={`h-[52px] rounded-lg font-heading text-base font-semibold flex items-center justify-center gap-2 cursor-pointer border-none transition-colors ${
-            selectedDesk
+            selectedDesk && isValidTimeRange
               ? 'bg-primary text-white hover:bg-primary-dark'
               : 'bg-primary/50 text-white/50 cursor-not-allowed'
           }`}

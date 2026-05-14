@@ -69,7 +69,7 @@ export default function LoginPage() {
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
               <label className="font-mono text-[11px] text-white font-semibold">
-                correo_corporativo
+                Correo corporativo
               </label>
               <input
                 type="email"
@@ -107,7 +107,7 @@ export default function LoginPage() {
           </button>
 
           <p className="font-mono text-[10px] text-text-muted text-center leading-relaxed">
-            ¿Problemas para acceder? Contacta a mesa_de_ayuda@accenture.com
+            ¿Problemas para acceder? Contacta a <a href="mailto:mesa_de_ayuda@accenture.com" className="text-primary underline">mesa de ayuda</a>
           </p>
         </form>
       </div>

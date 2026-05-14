@@ -354,7 +354,7 @@ function EspaciosView() {
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// gestion_espacios</span>
+          <span className="admin-main__eyebrow">// gestión espacios</span>
           <h1>GESTION DE ESPACIOS</h1>
         </div>
         <div className="admin-main__actions">
@@ -444,7 +444,7 @@ function UsuariosView() {
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// gestion_usuarios</span>
+          <span className="admin-main__eyebrow">// gestión usuarios</span>
           <h1>GESTION DE USUARIOS</h1>
         </div>
         <div className="admin-main__actions">
@@ -549,7 +549,7 @@ function VisitasView() {
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// gestión_visitas</span>
+          <span className="admin-main__eyebrow">// gestión visitas</span>
           <h1>GESTIÓN DE VISITAS</h1>
         </div>
         <div className="admin-main__actions">
@@ -652,7 +652,7 @@ function EventosView() {
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// gestión_eventos</span>
+          <span className="admin-main__eyebrow">// gestión eventos</span>
           <h1>GESTIÓN DE EVENTOS</h1>
         </div>
         <div className="admin-main__actions">
@@ -756,7 +756,7 @@ function PrediccionIAView() {
     <main className="admin-main admin-main--ia">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// predicción_ia</span>
+          <span className="admin-main__eyebrow">// predicción IA</span>
           <h1>PREDICCIÓN DE OCUPACIÓN</h1>
         </div>
         <div className="admin-main__actions">
@@ -972,7 +972,7 @@ export default function AdminDashboardPage() {
       <main className="admin-main">
         <header className="admin-main__header">
           <div>
-            <span className="admin-main__eyebrow">// dashboard_ocupacion</span>
+            <span className="admin-main__eyebrow">// dashboard ocupación</span>
             <h1>OCUPACION EN TIEMPO REAL</h1>
           </div>
           <div className={liveClassName}>
