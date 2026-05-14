@@ -1,9 +1,13 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/useAuth'
-import { createReservacion } from '../../services/reservations'
+import { createReservacion, getReservacionesByEmpleado } from '../../services/reservations'
 import Qrgenerator from '../../components/Confirmation/Qrgenerator'
 
+function getDateKey(dateStr) {
+  if (!dateStr) return null
+  return String(dateStr).slice(0, 10)
+}
 
 function formatDateLabel(dateStr) {
   if (!dateStr) return '—'
@@ -50,6 +54,20 @@ export default function ConfirmationPage() {
       }
 
       try {
+        const reservationsRes = await getReservacionesByEmpleado(user.empleadoId)
+        const currentDateKey = getDateKey(date)
+        const existingSameDay = (reservationsRes.data || []).some((r) => {
+          const isSameDay = getDateKey(r.Fecha) === currentDateKey
+          const isCancelled = (r.EstatusNombre || '').toLowerCase() === 'cancelada'
+          return isSameDay && !isCancelled
+        })
+
+        if (existingSameDay) {
+          setError('Ya tienes una reservación el mismo día. Solo se permite una reservación por día.')
+          setSaving(false)
+          return
+        }
+
         // El backend ya hace auto-asignación de estacionamiento
         const res = await createReservacion({
           EmpleadoID: user.empleadoId,
@@ -81,6 +99,19 @@ export default function ConfirmationPage() {
     ? `RES-${String(reservationData.ReservacionID).padStart(6, '0')}`
     : '—'
 
+  const parkingDescription = reservationData?.Descripcion === 'Con estacionamiento'
+    ? 'Estacionamiento asignado'
+    : reservationData?.Descripcion
+
+  const parkingLabel = reservationData?.EstacionamientoAsignado?.Nombre
+    || reservationData?.EstacionamientoAsignado?.Etiqueta
+    || reservationData?.CajonNombre
+    || reservationData?.EstacionamientoAsignado?.Codigo
+    || reservationData?.EstacionamientoAsignado?.Ubicacion
+    || reservationData?.EstacionamientoAsignado?.Piso
+    || parkingDescription
+    || (parking ? 'No disponible' : 'No solicitado')
+
   const detailRows = [
     { label: 'Escritorio:', value: deskId },
     { label: 'Piso / Zona:', value: 'Piso 3 — Área General' },
@@ -88,11 +119,7 @@ export default function ConfirmationPage() {
     { label: 'Horario:', value: timeLabel },
     {
       label: 'Estacionamiento:',
-      value: reservationData?.EstacionamientoAsignado
-        ? `${reservationData.EstacionamientoAsignado.Nombre} (${reservationData.EstacionamientoAsignado.Capacidad} lugares)`
-        : parking
-          ? 'No disponible'
-          : 'No solicitado',
+      value: parkingLabel,
     },
   ]
 

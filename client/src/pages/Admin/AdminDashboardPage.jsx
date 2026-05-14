@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { Navigate } from 'react-router-dom'
+import { useDashboard } from '../../context/useDashboard'
+import { useAuth } from '../../context/useAuth'
 import './AdminDashboard.css'
 
 const sidebarItems = [
@@ -6,86 +9,71 @@ const sidebarItems = [
   { label: 'Reportes', icon: 'bars' },
   { label: 'Espacios', icon: 'square' },
   { label: 'Usuarios', icon: 'user' },
-  { label: 'Bloqueos', icon: 'ban' },
   { label: 'Visitas', icon: 'group' },
   { label: 'Eventos', icon: 'calendar' },
   { label: 'Prediccion IA', icon: 'diamond' },
 ]
 
-const stats = [
+const emptyStats = [
   {
     label: 'Escritorios',
-    value: '248',
-    detail: 'total',
+    value: '0',
+    detail: 'sin datos',
     accent: 'admin-stat--violet',
     icon: 'desktop',
   },
   {
     label: 'Ocupados',
-    value: '187',
-    detail: '↑ 12% vs ayer',
+    value: '0',
+    detail: 'sin datos',
     accent: 'admin-stat--rose',
     icon: 'userSquare',
   },
   {
     label: 'Disponibles',
-    value: '52',
-    detail: '↓ 8% vs ayer',
+    value: '0',
+    detail: 'sin datos',
     accent: 'admin-stat--mint',
     icon: 'checkSquare',
   },
   {
     label: 'Cajones',
-    value: '48',
-    detail: '26 ocupados',
+    value: '0',
+    detail: 'sin datos',
     accent: 'admin-stat--violet',
     icon: 'car',
   },
   {
     label: '% Ocupacion',
-    value: '75%',
-    detail: '↑ 5% vs ayer',
+    value: '0%',
+    detail: 'sin datos',
     accent: 'admin-stat--outline',
     icon: null,
   },
   {
     label: 'Bloqueados',
-    value: '9',
-    detail: 'mantenimiento',
+    value: '0',
+    detail: 'sin datos',
     accent: 'admin-stat--yellow',
     icon: 'lock',
   },
 ]
 
-const floors = [
-  { label: 'Piso 1', occupied: 85 },
-  { label: 'Piso 2', occupied: 72 },
-  { label: 'Piso 3', occupied: 91 },
-  { label: 'Piso 4', occupied: 58 },
-]
+const loadingStats = emptyStats.map((stat) => ({
+  ...stat,
+  detail: 'cargando',
+}))
 
-const floorRows = [
-  { label: 'Piso 1', value: '85%' },
-  { label: 'Piso 2', value: '72%' },
-  { label: 'Piso 3', value: '91%', accent: true },
-  { label: 'Piso 4', value: '58%' },
-  { label: 'Piso 5', value: '44%' },
-]
+const clampPercent = (value) => Math.min(Math.max(Math.round(Number(value) || 0), 0), 100)
+const formatPercent = (value) => `${clampPercent(value)}%`
 
-const zones = [
-  { label: 'Area General', value: '91%', color: '#a100ff' },
-  { label: 'Sala Conferencias', value: '67%', color: '#16e0a3' },
-  { label: 'Hot Desking', value: '45%', color: '#ffe83c' },
-]
-
-const activity = [
-  { text: 'Check-in: D-304 — Gilberto R.', time: '09:02', color: '#16e0a3' },
-  { text: 'Check-in: D-201 — Maria L.', time: '09:05', color: '#16e0a3' },
-  { text: 'No-show: D-105 — Carlos P.', time: '09:15', color: '#ff3355' },
-  { text: 'Liberado: D-105 — auto', time: '09:16', color: '#ffe83c' },
-  { text: 'Check-out: D-402 — Pedro S.', time: '08:55', color: '#a100ff' },
-  { text: 'Check-in: D-310 — Laura V.', time: '08:50', color: '#16e0a3' },
-]
+const activityColor = (status = '') => {
+  const normalized = status.toLowerCase()
+  if (normalized.includes('cancel') || normalized.includes('no-show')) return '#ff3355'
+  if (normalized.includes('liber') || normalized.includes('dispon')) return '#ffe83c'
+  if (normalized.includes('check-out')) return '#a100ff'
+  return '#16e0a3'
+}
 
 function AdminIcon({ name }) {
   const common = {
@@ -366,7 +354,7 @@ function EspaciosView() {
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// gestion_espacios</span>
+          <span className="admin-main__eyebrow">// gestión espacios</span>
           <h1>GESTION DE ESPACIOS</h1>
         </div>
         <div className="admin-main__actions">
@@ -456,7 +444,7 @@ function UsuariosView() {
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// gestion_usuarios</span>
+          <span className="admin-main__eyebrow">// gestión usuarios</span>
           <h1>GESTION DE USUARIOS</h1>
         </div>
         <div className="admin-main__actions">
@@ -543,8 +531,405 @@ function UsuariosView() {
   )
 }
 
+// ── Visitas data ─────────────────────────────────────────
+const visitasBigStats = [
+  { label: 'Programadas para Hoy', value: '27', color: '#f5efff' },
+  { label: 'Visitantes en Sitio', value: '12', color: '#12e0a4' },
+  { label: 'Próximos Días', value: '45', color: '#b100ff' },
+]
+
+const visitasList = [
+  { visitante: 'Maria Fernández', empresa: 'Cemex', anfitrion: 'Ana Martinez', fechaHora: '10/Mar 10:00AM', estado: 'Pre-registrado', acciones: ['Ver', 'ID'] },
+  { visitante: 'Juan Gómez', empresa: 'IBM', anfitrion: 'Gilberto R.', fechaHora: '10/Mar 11:30AM', estado: 'En sitio', acciones: ['Check-out'] },
+  { visitante: 'Laura Salas', empresa: 'Freelance', anfitrion: 'Carlos L.', fechaHora: '09/Mar 04:00PM', estado: 'Finalizada', acciones: ['Detalle'] },
+]
+
+function VisitasView() {
+  return (
+    <main className="admin-main admin-main--management">
+      <header className="admin-main__header">
+        <div>
+          <span className="admin-main__eyebrow">// gestión visitas</span>
+          <h1>GESTIÓN DE VISITAS</h1>
+        </div>
+        <div className="admin-main__actions">
+          <button type="button" className="admin-btn-export admin-btn-export--primary">
+            <AdminIcon name="plusBox" />
+            Registrar Visita
+          </button>
+        </div>
+      </header>
+
+      <section className="admin-visitas-stats">
+        {visitasBigStats.map((s) => (
+          <article key={s.label} className="admin-visitas-stat">
+            <span className="admin-visitas-stat__label">{s.label}</span>
+            <strong className="admin-visitas-stat__value" style={{ color: s.color }}>{s.value}</strong>
+          </article>
+        ))}
+      </section>
+
+      <section className="admin-management-tools" style={{ marginTop: '1.4rem' }}>
+        <label className="admin-search" style={{ flex: 1 }}>
+          <AdminIcon name="search" />
+          <input type="search" placeholder="Buscar por nombre, empresa o anfitrión..." />
+        </label>
+        <select className="admin-select" defaultValue="estado">
+          <option value="estado">Estado: Todos</option>
+          <option value="preregistrado">Pre-registrado</option>
+          <option value="ensitio">En sitio</option>
+          <option value="finalizada">Finalizada</option>
+        </select>
+      </section>
+
+      <section className="admin-card admin-card--management-table" style={{ marginTop: '1rem' }}>
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Visitante</th>
+                <th>Empresa</th>
+                <th>Anfitrión</th>
+                <th>Fecha y Hora</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visitasList.map((v) => (
+                <tr key={v.visitante}>
+                  <td>{v.visitante}</td>
+                  <td>{v.empresa}</td>
+                  <td>{v.anfitrion}</td>
+                  <td>{v.fechaHora}</td>
+                  <td>
+                    <span className={`admin-badge ${
+                      v.estado === 'En sitio' ? 'admin-badge--ok' :
+                      v.estado === 'Pre-registrado' ? 'admin-badge--yellow' :
+                      'admin-badge--arch'
+                    }`}>
+                      {v.estado === 'En sitio' && <span className="admin-badge__dot" />}
+                      {v.estado === 'Pre-registrado' && <span className="admin-badge__dot admin-badge__dot--yellow" />}
+                      {v.estado}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="admin-table-actions">
+                      {v.acciones.map((a) => (
+                        <button key={a} type="button" className={a === 'Check-out' ? 'admin-btn-ghost-sm admin-btn-ghost-sm--mint' : a === 'Detalle' ? 'admin-btn-ghost-sm admin-btn-ghost-sm--muted' : 'admin-btn-ghost-sm'}>{a}</button>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <button type="button" className="admin-fab" aria-label="Abrir soporte">
+        <AdminIcon name="message" />
+      </button>
+    </main>
+  )
+}
+
+// ── Eventos data ──────────────────────────────────────────
+const eventosBigStats = [
+  { label: 'Eventos Activos', value: '3', color: '#12e0a4' },
+  { label: 'Próximos 7 días', value: '5', color: '#12e0a4' },
+  { label: 'Participantes Registrados', value: '86', color: '#b100ff' },
+]
+
+const eventosList = [
+  { dot: '#12e0a4', nombre: 'Town Hall Q1', descripcion: 'Presentación de resultados trimestrales', fecha: '15/Mar/26', hora: '10:00-12:00', ubicacion: 'Piso 5 – Auditorio', acciones: ['Desbloquear'] },
+  { dot: '#12e0a4', nombre: 'Workshop UX', descripcion: 'Taller de diseño centrado en usuario', fecha: '18/Mar/26', hora: '14:00-17:00', ubicacion: 'Piso 3 – Sala A', acciones: ['Editar', 'Desprogramar'] },
+  { dot: '#ffe93b', nombre: 'Onboarding Marzo', descripcion: 'Inducción nuevos ingresos wave 3', fecha: '22/Mar/26', hora: '09:00-13:00', ubicacion: 'Piso 2 – Training', acciones: ['Editar', 'Desprogramar'] },
+]
+
+function EventosView() {
+  return (
+    <main className="admin-main admin-main--management">
+      <header className="admin-main__header">
+        <div>
+          <span className="admin-main__eyebrow">// gestión eventos</span>
+          <h1>GESTIÓN DE EVENTOS</h1>
+        </div>
+        <div className="admin-main__actions">
+          <button type="button" className="admin-btn-export admin-btn-export--primary">
+            <AdminIcon name="plusBox" />
+            Nuevo Evento
+          </button>
+        </div>
+      </header>
+
+      <section className="admin-visitas-stats">
+        {eventosBigStats.map((s) => (
+          <article key={s.label} className="admin-visitas-stat">
+            <span className="admin-visitas-stat__label">{s.label}</span>
+            <strong className="admin-visitas-stat__value" style={{ color: s.color }}>{s.value}</strong>
+          </article>
+        ))}
+      </section>
+
+      <section className="admin-card admin-card--management-table" style={{ marginTop: '1.4rem' }}>
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Evento</th>
+                <th>Descripción</th>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Ubicación</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {eventosList.map((e) => (
+                <tr key={e.nombre}>
+                  <td>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ width: '0.55rem', height: '0.55rem', borderRadius: '999px', background: e.dot, flexShrink: 0 }} />
+                      {e.nombre}
+                    </span>
+                  </td>
+                  <td style={{ color: 'var(--admin-muted)' }}>{e.descripcion}</td>
+                  <td>{e.fecha}</td>
+                  <td>{e.hora}</td>
+                  <td>{e.ubicacion}</td>
+                  <td>
+                    <div className="admin-table-actions">
+                      {e.acciones.map((a) => (
+                        <button key={a} type="button" className={a === 'Desprogramar' ? 'admin-btn-danger-sm' : 'admin-btn-ghost-sm'}>{a}</button>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <button type="button" className="admin-fab" aria-label="Abrir soporte">
+        <AdminIcon name="message" />
+      </button>
+    </main>
+  )
+}
+
+// ── Prediccion IA data ────────────────────────────────────
+const iaScatterPoints = [
+  { dia: 'Lun 09', x: 14, y: 62 },
+  { dia: 'Mar 10', x: 27, y: 50 },
+  { dia: 'Mié 11', x: 40, y: 57 },
+  { dia: 'Jue 12', x: 54, y: 38 },
+  { dia: 'Vie 13', x: 67, y: 28 },
+  { dia: 'Sáb 14', x: 80, y: 50 },
+  { dia: 'Dom 15', x: 90, y: 70 },
+]
+
+const iaInsights = [
+  {
+    titulo: 'Alta Demanda el Jueves 12',
+    texto: 'Se proyecta un 92% de ocupación en Piso 3 y Piso 4. Sugerimos habilitar hot-desking extra.',
+    tipo: 'alerta',
+    accion: 'Habilitar espacios',
+  },
+  {
+    titulo: 'Baja Ocupación el Viernes',
+    texto: 'Piso 1 proyecta < 30%. Puede considerar cierre por ahorro de energía.',
+    tipo: 'mint',
+    accion: null,
+  },
+  {
+    titulo: 'Optimización de Limpieza',
+    texto: 'Zonas B y C del Piso 2 no tendrán uso el fin de semana.',
+    tipo: 'violet',
+    accion: null,
+  },
+]
+
+function PrediccionIAView() {
+  return (
+    <main className="admin-main admin-main--ia">
+      <header className="admin-main__header">
+        <div>
+          <span className="admin-main__eyebrow">// predicción IA</span>
+          <h1>PREDICCIÓN DE OCUPACIÓN</h1>
+        </div>
+        <div className="admin-main__actions">
+          <button type="button" className="admin-btn-export">
+            Proyección: Próximos 7 Días
+          </button>
+        </div>
+      </header>
+
+      <div className="admin-ia-layout">
+        <article className="admin-card admin-ia-chart-card">
+          <div className="admin-card__header">
+            <h2>Ocupación Proyectada vs Capacidad</h2>
+          </div>
+          <div className="admin-ia-scatter">
+            {iaScatterPoints.map((p) => (
+              <span
+                key={p.dia}
+                className="admin-ia-scatter__point"
+                style={{ left: `${p.x}%`, top: `${p.y}%` }}
+                title={`${p.dia}: ~${Math.round(100 - p.y)}%`}
+              />
+            ))}
+            <div className="admin-ia-scatter__capacity">Capacidad Max 100%</div>
+            <div className="admin-ia-scatter__xaxis">
+              {iaScatterPoints.map((p) => (
+                <span key={p.dia}>{p.dia}</span>
+              ))}
+            </div>
+          </div>
+        </article>
+
+        <aside className="admin-ia-insights">
+          <h2 className="admin-ia-insights__title">Insights y Recomendaciones</h2>
+          {iaInsights.map((ins) => (
+            <div key={ins.titulo} className={`admin-ia-insight admin-ia-insight--${ins.tipo}`}>
+              <div className="admin-ia-insight__header">
+                <span className="admin-ia-insight__icon">
+                  {ins.tipo === 'alerta' ? '⚠' : ins.tipo === 'mint' ? '↘' : '▷'}
+                </span>
+                <strong>{ins.titulo}</strong>
+              </div>
+              <p>{ins.texto}</p>
+              {ins.accion && (
+                <button type="button" className="admin-ia-insight__btn">{ins.accion}</button>
+              )}
+            </div>
+          ))}
+        </aside>
+      </div>
+
+      <button type="button" className="admin-fab" aria-label="Abrir soporte">
+        <AdminIcon name="message" />
+      </button>
+    </main>
+  )
+}
+
 export default function AdminDashboardPage() {
   const [activePage, setActivePage] = useState('Dashboard')
+  const { user } = useAuth()
+  const { dashboard, loading, error } = useDashboard()
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  const isBackendConnected = Boolean(dashboard) && !error
+  const hasBackendData = Boolean(dashboard?.hasBackendData)
+
+  const dashboardStats = dashboard?.stats
+    ? [
+        {
+          label: 'Escritorios',
+          value: String(dashboard.stats.totalSpaces ?? 0),
+          detail: 'total',
+          accent: 'admin-stat--violet',
+          icon: 'desktop',
+        },
+        {
+          label: 'Ocupados',
+          value: String(dashboard.stats.occupiedSpaces ?? 0),
+          detail: 'en uso ahora',
+          accent: 'admin-stat--rose',
+          icon: 'userSquare',
+        },
+        {
+          label: 'Disponibles',
+          value: String(dashboard.stats.availableSpaces ?? 0),
+          detail: 'libres ahora',
+          accent: 'admin-stat--mint',
+          icon: 'checkSquare',
+        },
+        {
+          label: 'Cajones',
+          value: String(dashboard.stats.parkingTotal ?? 0),
+          detail: `${dashboard.stats.parkingOccupied ?? 0} ocupados`,
+          accent: 'admin-stat--violet',
+          icon: 'car',
+        },
+        {
+          label: '% Ocupacion',
+          value: formatPercent(dashboard.stats.occupancyPercent),
+          detail: 'en vivo',
+          accent: 'admin-stat--outline',
+          icon: null,
+        },
+        {
+          label: 'Bloqueados',
+          value: String(dashboard.stats.blockedSpaces ?? 0),
+          detail: 'mantenimiento',
+          accent: 'admin-stat--yellow',
+          icon: 'lock',
+        },
+      ]
+    : loading
+      ? loadingStats
+      : emptyStats
+
+  const dashboardFloors = dashboard?.floors?.length
+    ? dashboard.floors.map((floor) => ({
+        label: floor.label,
+        occupied: clampPercent(floor.occupancyPercent),
+      }))
+    : []
+
+  const dashboardFloorRows = dashboard?.floors?.length
+    ? dashboard.floors.map((floor) => ({
+        label: floor.label,
+        value: formatPercent(floor.occupancyPercent),
+        accent: floor.label === dashboard.selectedFloor,
+      }))
+    : []
+
+  const dashboardZones = dashboard?.zones?.length
+    ? dashboard.zones.map((zone) => ({
+        label: zone.label,
+        value: formatPercent(zone.value),
+        color: zone.color,
+      }))
+    : []
+
+  const dashboardActivity = dashboard?.recentActivity?.length
+    ? dashboard.recentActivity.map((entry) => ({
+        text: entry.text,
+        time: entry.time,
+        color: activityColor(entry.status),
+      }))
+    : [
+        {
+          text: loading
+            ? 'Cargando datos reales...'
+            : error
+              ? error
+              : isBackendConnected
+                ? 'Backend conectado, sin actividad reciente'
+                : 'Sin datos del backend',
+          time: '',
+          color: error ? '#ff3355' : '#16e0a3',
+        },
+      ]
+
+  const selectedZonePercent = dashboardZones[0]?.value || '0%'
+  const selectedZoneValue = clampPercent(Number.parseInt(selectedZonePercent, 10))
+  const liveStatus = loading
+    ? 'Cargando datos...'
+    : error
+      ? error
+      : hasBackendData
+        ? 'En vivo - actualizado'
+        : 'Conectado - sin registros'
+  const liveClassName = `admin-main__live ${error ? 'is-error' : !hasBackendData && !loading ? 'is-warning' : ''}`
+
   return (
     <div className="admin-dashboard">
       <aside className="admin-sidebar">
@@ -587,17 +972,17 @@ export default function AdminDashboardPage() {
       <main className="admin-main">
         <header className="admin-main__header">
           <div>
-            <span className="admin-main__eyebrow">// dashboard_ocupacion</span>
+            <span className="admin-main__eyebrow">// dashboard ocupación</span>
             <h1>OCUPACION EN TIEMPO REAL</h1>
           </div>
-          <div className="admin-main__live">
+          <div className={liveClassName}>
             <span className="admin-main__dot" />
-            <span>En vivo — Actualizado hace 12s</span>
+            <span>{liveStatus}</span>
           </div>
         </header>
 
         <section className="admin-stats">
-          {stats.map((stat) => (
+          {dashboardStats.map((stat) => (
             <article key={stat.label} className={`admin-stat ${stat.accent}`}>
               <div className="admin-stat__top">
                 <span>{stat.label}</span>
@@ -619,24 +1004,30 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="admin-bars">
-              {floors.map((floor) => (
-                <div key={floor.label} className="admin-bars__item">
-                  <div className="admin-bars__track">
-                    <div
-                      className="admin-bars__available"
-                      style={{ height: `${100 - floor.occupied}%` }}
-                    />
-                    <div
-                      className="admin-bars__occupied"
-                      style={{ height: `${floor.occupied}%` }}
-                    />
+              {dashboardFloors.length > 0 ? (
+                dashboardFloors.map((floor) => (
+                  <div key={floor.label} className="admin-bars__item" title={floor.label}>
+                    <div className="admin-bars__track">
+                      <div
+                        className="admin-bars__available"
+                        style={{ height: `${100 - floor.occupied}%` }}
+                      />
+                      <div
+                        className="admin-bars__occupied"
+                        style={{ height: `${floor.occupied}%` }}
+                      />
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="admin-empty-state">
+                  {loading ? 'Cargando pisos...' : 'Sin pisos para mostrar'}
                 </div>
-              ))}
+              )}
             </div>
 
             <div className="admin-floor-list">
-              {floorRows.map((floor) => (
+              {dashboardFloorRows.map((floor) => (
                 <div key={floor.label} className="admin-floor-list__row">
                   <span>{floor.label}</span>
                   <div className="admin-floor-list__bar" />
@@ -649,22 +1040,31 @@ export default function AdminDashboardPage() {
           <article className="admin-card admin-card--zones">
             <div className="admin-card__header admin-card__header--stacked">
               <h2>Ocupacion por Zona</h2>
-              <span>Piso 3 seleccionado</span>
+              <span>{dashboard?.selectedFloor ? `${dashboard.selectedFloor} seleccionado` : 'Piso 3 seleccionado'}</span>
             </div>
 
             <div className="admin-donut">
-              <div className="admin-donut__chart">
-                <div className="admin-donut__inner">91%</div>
+              <div
+                className="admin-donut__chart"
+                style={{ '--admin-donut-value': `${selectedZoneValue}%` }}
+              >
+                <div className="admin-donut__inner">{selectedZonePercent}</div>
               </div>
             </div>
 
             <div className="admin-legend">
-              {zones.map((zone) => (
-                <div key={zone.label} className="admin-legend__item">
-                  <span className="admin-legend__dot" style={{ backgroundColor: zone.color }} />
-                  <span>{zone.label}: {zone.value}</span>
+              {dashboardZones.length > 0 ? (
+                dashboardZones.map((zone) => (
+                  <div key={zone.label} className="admin-legend__item">
+                    <span className="admin-legend__dot" style={{ backgroundColor: zone.color }} />
+                    <span>{zone.label}: {zone.value}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="admin-empty-state admin-empty-state--compact">
+                  {loading ? 'Cargando zonas...' : 'Sin zonas del backend'}
                 </div>
-              ))}
+              )}
             </div>
           </article>
 
@@ -674,7 +1074,7 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="admin-activity">
-              {activity.map((entry) => (
+              {dashboardActivity.map((entry) => (
                 <div key={`${entry.text}-${entry.time}`} className="admin-activity__row">
                   <span className="admin-activity__dot" style={{ backgroundColor: entry.color }} />
                   <span className="admin-activity__text">{entry.text}</span>
@@ -693,6 +1093,9 @@ export default function AdminDashboardPage() {
       {activePage === 'Reportes' && <ReportesView />}
       {activePage === 'Espacios' && <EspaciosView />}
       {activePage === 'Usuarios' && <UsuariosView />}
+      {activePage === 'Visitas' && <VisitasView />}
+      {activePage === 'Eventos' && <EventosView />}
+      {activePage === 'Prediccion IA' && <PrediccionIAView />}
     </div>
   )
 }

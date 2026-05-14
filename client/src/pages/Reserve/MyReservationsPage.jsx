@@ -10,9 +10,11 @@ const FILTERS = [
   { key: 'cancelled', label: 'Canceladas' },
 ]
 
+const GRACE_MINUTES = 11
+
 const STATUS_STYLE = {
   active: {
-    label: 'En período de gracia',
+    label: 'En periodo de grasa',
     text: '#05f0a5',
     bg: 'rgba(5,240,165,0.20)',
   },
@@ -54,12 +56,14 @@ function classifyReservation(r) {
   if (resDay < today) return 'past'
   if (resDay > today) return 'upcoming'
 
-  const [endH, endM] = (r.HoraFin || '18:00').split(':').map(Number)
-  const endMinutes = endH * 60 + endM
+  const [startH, startM] = (r.HoraInicio || '00:00').split(':').map(Number)
+  const startMinutes = startH * 60 + startM
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const graceEndMinutes = startMinutes + GRACE_MINUTES
 
-  if (nowMinutes > endMinutes) return 'past'
-  return 'active'
+  if (nowMinutes < startMinutes) return 'upcoming'
+  if (nowMinutes < graceEndMinutes) return 'active'
+  return 'past'
 }
 
 function formatDate(dateStr) {
