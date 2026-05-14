@@ -1,4 +1,4 @@
-import { useDashboard } from '../../context/DashboardContext'
+import { useDashboard } from '../../context/useDashboard'
 
 export default function StatsPanel() {
   const { data, loading } = useDashboard()
