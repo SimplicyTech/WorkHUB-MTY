@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { useDashboard } from '../../context/useDashboard'
+import { useDashboard } from '../../context/DashboardContext'
 import { useAuth } from '../../context/useAuth'
 import { getAllEmpleados, getAllReservaciones, createEmpleado } from '../../services/reservations'
 import './AdminDashboard.css'
