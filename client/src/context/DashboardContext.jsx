@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DashboardContext } from './dashboard-context'
 import { useAuth } from './useAuth'
-import { getDashboardRequest } from '../services/dashboard'
+import {
+  DASHBOARD_REFRESH_EVENT,
+  DASHBOARD_REFRESH_KEY,
+  getDashboardRequest,
+} from '../services/dashboard'
 import { getToken } from '../services/api'
 
 export function DashboardProvider({ children }) {
@@ -11,14 +15,15 @@ export function DashboardProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const fetchDashboard = async () => {
-    setLoading(true)
+  const fetchDashboard = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true)
     setError(null)
+
     if (!getToken()) {
       setData([])
       setDashboard(null)
       setError('Inicia sesion para ver datos reales del dashboard')
-      setLoading(false)
+      if (!silent) setLoading(false)
       return
     }
 
@@ -32,13 +37,40 @@ export function DashboardProvider({ children }) {
       setDashboard(null)
       setError(err?.error || 'Error al cargar dashboard')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchDashboard()
-  }, [user])
+  }, [fetchDashboard, user])
+
+  useEffect(() => {
+    if (!user || !getToken()) return undefined
+
+    const refreshSilently = () => fetchDashboard({ silent: true })
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') refreshSilently()
+    }
+    const handleStorage = (event) => {
+      if (event.key === DASHBOARD_REFRESH_KEY) refreshSilently()
+    }
+
+    const intervalId = window.setInterval(refreshSilently, 30000)
+
+    window.addEventListener('focus', refreshSilently)
+    window.addEventListener(DASHBOARD_REFRESH_EVENT, refreshSilently)
+    window.addEventListener('storage', handleStorage)
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', refreshSilently)
+      window.removeEventListener(DASHBOARD_REFRESH_EVENT, refreshSilently)
+      window.removeEventListener('storage', handleStorage)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [fetchDashboard, user])
 
   return (
     <DashboardContext.Provider value={{ data, dashboard, loading, error, refresh: fetchDashboard }}>

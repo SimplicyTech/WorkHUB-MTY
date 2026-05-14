@@ -64,7 +64,8 @@ const loadingStats = emptyStats.map((stat) => ({
   detail: 'cargando',
 }))
 
-const formatPercent = (value) => `${Math.round(Number(value) || 0)}%`
+const clampPercent = (value) => Math.min(Math.max(Math.round(Number(value) || 0), 0), 100)
+const formatPercent = (value) => `${clampPercent(value)}%`
 
 const activityColor = (status = '') => {
   const normalized = status.toLowerCase()
@@ -823,6 +824,9 @@ export default function AdminDashboardPage() {
     return <Navigate to="/login" replace />
   }
 
+  const isBackendConnected = Boolean(dashboard) && !error
+  const hasBackendData = Boolean(dashboard?.hasBackendData)
+
   const dashboardStats = dashboard?.stats
     ? [
         {
@@ -875,7 +879,7 @@ export default function AdminDashboardPage() {
   const dashboardFloors = dashboard?.floors?.length
     ? dashboard.floors.map((floor) => ({
         label: floor.label,
-        occupied: Number(floor.occupancyPercent) || 0,
+        occupied: clampPercent(floor.occupancyPercent),
       }))
     : []
 
@@ -901,19 +905,30 @@ export default function AdminDashboardPage() {
         time: entry.time,
         color: activityColor(entry.status),
       }))
-    : [{
-          text: loading ? 'Cargando datos reales...' : error || 'Sin datos del backend',
+    : [
+        {
+          text: loading
+            ? 'Cargando datos reales...'
+            : error
+              ? error
+              : isBackendConnected
+                ? 'Backend conectado, sin actividad reciente'
+                : 'Sin datos del backend',
           time: '',
-          color: '#ff3355',
-        }]
+          color: error ? '#ff3355' : '#16e0a3',
+        },
+      ]
 
   const selectedZonePercent = dashboardZones[0]?.value || '0%'
-  const selectedZoneValue = Number.parseInt(selectedZonePercent, 10) || 0
+  const selectedZoneValue = clampPercent(Number.parseInt(selectedZonePercent, 10))
   const liveStatus = loading
     ? 'Cargando datos...'
     : error
       ? error
-      : 'En vivo - actualizado'
+      : hasBackendData
+        ? 'En vivo - actualizado'
+        : 'Conectado - sin registros'
+  const liveClassName = `admin-main__live ${error ? 'is-error' : !hasBackendData && !loading ? 'is-warning' : ''}`
 
   return (
     <div className="admin-dashboard">
@@ -960,7 +975,7 @@ export default function AdminDashboardPage() {
             <span className="admin-main__eyebrow">// dashboard_ocupacion</span>
             <h1>OCUPACION EN TIEMPO REAL</h1>
           </div>
-          <div className="admin-main__live">
+          <div className={liveClassName}>
             <span className="admin-main__dot" />
             <span>{liveStatus}</span>
           </div>
@@ -989,20 +1004,26 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="admin-bars">
-              {dashboardFloors.map((floor) => (
-                <div key={floor.label} className="admin-bars__item">
-                  <div className="admin-bars__track">
-                    <div
-                      className="admin-bars__available"
-                      style={{ height: `${100 - floor.occupied}%` }}
-                    />
-                    <div
-                      className="admin-bars__occupied"
-                      style={{ height: `${floor.occupied}%` }}
-                    />
+              {dashboardFloors.length > 0 ? (
+                dashboardFloors.map((floor) => (
+                  <div key={floor.label} className="admin-bars__item" title={floor.label}>
+                    <div className="admin-bars__track">
+                      <div
+                        className="admin-bars__available"
+                        style={{ height: `${100 - floor.occupied}%` }}
+                      />
+                      <div
+                        className="admin-bars__occupied"
+                        style={{ height: `${floor.occupied}%` }}
+                      />
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="admin-empty-state">
+                  {loading ? 'Cargando pisos...' : 'Sin pisos para mostrar'}
                 </div>
-              ))}
+              )}
             </div>
 
             <div className="admin-floor-list">
@@ -1032,12 +1053,18 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="admin-legend">
-              {dashboardZones.map((zone) => (
-                <div key={zone.label} className="admin-legend__item">
-                  <span className="admin-legend__dot" style={{ backgroundColor: zone.color }} />
-                  <span>{zone.label}: {zone.value}</span>
+              {dashboardZones.length > 0 ? (
+                dashboardZones.map((zone) => (
+                  <div key={zone.label} className="admin-legend__item">
+                    <span className="admin-legend__dot" style={{ backgroundColor: zone.color }} />
+                    <span>{zone.label}: {zone.value}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="admin-empty-state admin-empty-state--compact">
+                  {loading ? 'Cargando zonas...' : 'Sin zonas del backend'}
                 </div>
-              ))}
+              )}
             </div>
           </article>
 

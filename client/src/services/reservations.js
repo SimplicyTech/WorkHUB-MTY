@@ -1,4 +1,5 @@
 import { apiRequest } from './api'
+import { notifyDashboardChanged } from './dashboard'
 
 // ── Espacios ──────────────────────────────────────────────
 
@@ -30,11 +31,17 @@ export function createReservacion({
   return apiRequest('/reservaciones', {
     method: 'POST',
     body: { EmpleadoID, EspacioID, VisitaID, Fecha, HoraInicio, HoraFin, Descripcion },
+  }).then((response) => {
+    notifyDashboardChanged()
+    return response
   })
 }
 
 export function cancelReservacion(reservacionId) {
   return apiRequest(`/reservaciones/${reservacionId}`, {
     method: 'DELETE',
+  }).then((response) => {
+    notifyDashboardChanged()
+    return response
   })
 }
