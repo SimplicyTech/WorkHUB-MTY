@@ -21,13 +21,17 @@
 .admin-sidebar {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  height: 100dvh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
   background: linear-gradient(180deg, #1a042d 0%, #0d0317 72%);
   border-right: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .admin-brand {
   padding: 2.5rem 2.25rem 1.8rem;
+  background: #3b005d;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
@@ -550,6 +554,13 @@
   border-color: rgba(177, 0, 255, 0.7);
 }
 
+/* date input — same look as admin-select but no custom arrow */
+.admin-select--date {
+  appearance: auto;
+  color-scheme: dark;
+  padding-right: 0.55rem;
+}
+
 .admin-btn-export {
   display: inline-flex;
   align-items: center;
@@ -727,12 +738,17 @@
 }
 
 .admin-sidebar {
+  height: 100dvh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
   background: linear-gradient(180deg, #21003a 0 10.8%, #08000f 10.8% 94%, #21003a 94%);
 }
 
 .admin-brand {
   min-height: 118px;
   padding: 2rem 1.45rem 1.4rem;
+  background: #3b005d;
 }
 
 .admin-brand__topline {
@@ -1243,6 +1259,111 @@
 /* ghost small mint variant */
 .admin-btn-ghost-sm--mint { color: var(--admin-mint); border-color: rgba(18,224,164,0.35); }
 .admin-btn-ghost-sm--muted { color: var(--admin-muted); border-color: rgba(157,137,184,0.3); }
+
+/* ── Table loading / empty state ── */
+.admin-table-msg {
+  padding: 1.8rem 1.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  color: var(--admin-muted);
+  text-align: center;
+}
+.admin-table-msg--error { color: var(--admin-red); }
+
+/* ── Modal ── */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.65);
+  display: grid;
+  place-items: center;
+}
+
+.admin-modal {
+  width: min(480px, 90vw);
+  background: #1a042d;
+  border: 1px solid rgba(177, 0, 255, 0.35);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.admin-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.4rem 1.6rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-modal__header h2 {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+.admin-modal__close {
+  border: 0;
+  background: transparent;
+  color: var(--admin-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: color 150ms;
+}
+.admin-modal__close:hover { color: #fff; }
+
+.admin-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.4rem 1.6rem 1.6rem;
+}
+
+.admin-modal__label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--admin-muted);
+}
+
+.admin-modal__input {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(177, 0, 255, 0.3);
+  border-radius: 8px;
+  color: var(--admin-text);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 0.65rem 0.9rem;
+  outline: none;
+  transition: border-color 180ms;
+}
+.admin-modal__input:focus { border-color: #a100ff; }
+
+/* select del modal con fondo morado en las opciones */
+.admin-modal__select option {
+  background: #1a042d;
+  color: #f5efff;
+}
+
+.admin-modal__error {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--admin-red);
+  margin: 0;
+}
+
+.admin-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
 
 /* ── Prediccion IA layout ── */
 .admin-main--ia {
