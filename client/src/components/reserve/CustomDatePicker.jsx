@@ -35,9 +35,10 @@ function formatLabel(date) {
   return `${day} / ${month} / ${date.getFullYear()}`
 }
 
-export default function CustomDatePicker({ value, onChange, min }) {
+export default function CustomDatePicker({ value, onChange, min, max }) {
   const selected = useMemo(() => parseISO(value), [value])
   const minDate = useMemo(() => parseISO(min), [min])
+  const maxDate = useMemo(() => parseISO(max), [max])
   const [open, setOpen] = useState(false)
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(selected || new Date()))
   const containerRef = useRef(null)
@@ -72,10 +73,17 @@ export default function CustomDatePicker({ value, onChange, min }) {
   }, [viewMonth])
 
   const isDisabled = (d) => {
-    if (!d || !minDate) return false
+    if (!d) return false
     const a = new Date(d.getFullYear(), d.getMonth(), d.getDate())
-    const b = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate())
-    return a < b
+    if (minDate) {
+      const b = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate())
+      if (a < b) return true
+    }
+    if (maxDate) {
+      const c = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate())
+      if (a > c) return true
+    }
+    return false
   }
 
   const isSelected = (d) =>
