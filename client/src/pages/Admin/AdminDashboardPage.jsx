@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
-import { useDashboard } from '../../context/useDashboard'
+import { useState, useEffect } from 'react'
+import { Navigate, useNavigate } from 'react-router-dom'
+import { useDashboard } from '../../context/DashboardContext'
 import { useAuth } from '../../context/useAuth'
+import { getAllEmpleados, getAllReservaciones, createEmpleado } from '../../services/reservations'
 import './AdminDashboard.css'
 
 const sidebarItems = [
@@ -440,6 +441,66 @@ function EspaciosView() {
 }
 
 function UsuariosView() {
+  const [empleados, setEmpleados] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [search, setSearch] = useState('')
+  const [filtroRol, setFiltroRol] = useState('todos')
+
+  // Modal state
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState({ Nombre: '', Correo: '', Contrasena: '', RolID: '3', NivelID: '1' })
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState(null)
+
+  const cargarEmpleados = () => {
+    setLoading(true)
+    getAllEmpleados()
+      .then((res) => setEmpleados(res.data || []))
+      .catch(() => setError('No se pudo cargar la lista de empleados'))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { cargarEmpleados() }, [])
+
+  const ROL_MAP = {
+    1: 'Empleado',
+    2: 'Administrador de Facilities',
+    3: 'Visitante',
+    4: 'Administrador del Sistema',
+    5: 'Guardia',
+  }
+
+  const filtrados = empleados.filter((u) => {
+    const nombre = (u.Nombre || '').toLowerCase()
+    const correo = (u.Correo || '').toLowerCase()
+    const coincideBusqueda = nombre.includes(search.toLowerCase()) || correo.includes(search.toLowerCase())
+    const coincideRol = filtroRol === 'todos' || String(u.RolID) === filtroRol
+    return coincideBusqueda && coincideRol
+  })
+
+  const handleFormChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setFormError(null)
+    if (!form.Nombre || !form.Correo || !form.Contrasena) {
+      setFormError('Nombre, Correo y Contraseña son obligatorios')
+      return
+    }
+    setSaving(true)
+    try {
+      await createEmpleado({ ...form, RolID: Number(form.RolID), NivelID: Number(form.NivelID) })
+      setShowModal(false)
+      setForm({ Nombre: '', Correo: '', Contrasena: '', RolID: '3', NivelID: '1' })
+      cargarEmpleados()
+    } catch (err) {
+      setFormError(err?.error || 'Error al crear el usuario')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
@@ -448,7 +509,7 @@ function UsuariosView() {
           <h1>GESTION DE USUARIOS</h1>
         </div>
         <div className="admin-main__actions">
-          <button type="button" className="admin-btn-export admin-btn-export--primary">
+          <button type="button" className="admin-btn-export admin-btn-export--primary" onClick={() => setShowModal(true)}>
             <AdminIcon name="plusBox" />
             Agregar Usuario
           </button>
@@ -458,71 +519,112 @@ function UsuariosView() {
       <section className="admin-management-tools admin-management-tools--users">
         <label className="admin-search">
           <AdminIcon name="search" />
-          <input type="search" placeholder="Buscar por nombre o correo..." />
+          <input
+            type="search"
+            placeholder="Buscar por nombre o correo..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </label>
-        <select className="admin-select" defaultValue="rol">
-          <option value="rol">Rol: Todos</option>
-        </select>
-        <select className="admin-select" defaultValue="depto">
-          <option value="depto">Depto: Todos</option>
-        </select>
-        <select className="admin-select" defaultValue="estado">
-          <option value="estado">Estado: Todos</option>
+        <select className="admin-select" value={filtroRol} onChange={(e) => setFiltroRol(e.target.value)}>
+          <option value="todos">Rol: Todos</option>
+          <option value="1">Empleado</option>
+          <option value="2">Administrador de Facilities</option>
+          <option value="3">Visitante</option>
+          <option value="4">Administrador del Sistema</option>
+          <option value="5">Guardia</option>
         </select>
       </section>
 
       <section className="admin-card admin-card--management-table">
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Correo</th>
-                <th>Rol</th>
-                <th>Depto.</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuariosList.map((u) => (
-                <tr key={u.id}>
-                  <td className="admin-table__id">{u.id}</td>
-                  <td>{u.nombre}</td>
-                  <td>{u.email}</td>
-                  <td>{u.rol}</td>
-                  <td>{u.depto}</td>
-                  <td>
-                    <span className={`admin-badge ${
-                      u.estado === 'Activo' ? 'admin-badge--ok' :
-                      u.estado === 'Inactivo' ? 'admin-badge--rose' :
-                      'admin-badge--yellow'
-                    }`}>{u.estado}</span>
-                  </td>
-                  <td>
-                    <div className="admin-table-actions">
-                      <button type="button" className="admin-btn-ghost-sm">Editar</button>
-                      <button type="button" className={u.estado === 'Activo' ? 'admin-btn-danger-sm' : 'admin-btn-ghost-sm'}>
-                        {u.estado === 'Activo' ? 'Desactivar' : 'Activar'}
-                      </button>
-                    </div>
-                  </td>
+        {loading && <p className="admin-table-msg">Cargando empleados…</p>}
+        {error && <p className="admin-table-msg admin-table-msg--error">{error}</p>}
+        {!loading && !error && (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Correo</th>
+                  <th>Rol</th>
+                  <th>Puntos</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="admin-pagination">
-          <span>Mostrando 1-6 de 128 usuarios</span>
-          <div>
-            <button type="button" className="is-active">1</button>
-            <button type="button">2</button>
-            <button type="button">3</button>
-            <button type="button">→</button>
+              </thead>
+              <tbody>
+                {filtrados.map((u) => (
+                  <tr key={u.EmpleadoID}>
+                    <td className="admin-table__id">U-{u.EmpleadoID}</td>
+                    <td>{u.Nombre}</td>
+                    <td style={{ color: 'var(--admin-muted)', fontSize: '0.88rem' }}>{u.Correo}</td>
+                    <td>
+                      <span className={`admin-badge ${
+                        u.RolID === 1 ? 'admin-badge--tipo' :
+                        u.RolID === 2 ? 'admin-badge--yellow' :
+                        'admin-badge--ok'
+                      }`}>
+                        {ROL_MAP[u.RolID] || `Rol ${u.RolID}`}
+                      </span>
+                    </td>
+                    <td>{u.Puntos ?? 0}</td>
+                  </tr>
+                ))}
+                {filtrados.length === 0 && (
+                  <tr><td colSpan={5} className="admin-table-msg">Sin resultados</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {!loading && !error && (
+          <div className="admin-pagination">
+            <span>Mostrando {filtrados.length} de {empleados.length} empleados</span>
+          </div>
+        )}
+      </section>
+
+      {/* ── Modal Agregar Usuario ── */}
+      {showModal && (
+        <div className="admin-modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal__header">
+              <h2>Agregar Usuario</h2>
+              <button type="button" className="admin-modal__close" onClick={() => setShowModal(false)}>✕</button>
+            </div>
+            <form className="admin-modal__form" onSubmit={handleSubmit}>
+              <label className="admin-modal__label">
+                Nombre completo
+                <input className="admin-modal__input" name="Nombre" value={form.Nombre} onChange={handleFormChange} placeholder="Ej. Ana Martínez" />
+              </label>
+              <label className="admin-modal__label">
+                Correo electrónico
+                <input className="admin-modal__input" type="email" name="Correo" value={form.Correo} onChange={handleFormChange} placeholder="correo@accenture.com" />
+              </label>
+              <label className="admin-modal__label">
+                Contraseña
+                <input className="admin-modal__input" type="password" name="Contrasena" value={form.Contrasena} onChange={handleFormChange} placeholder="••••••••" />
+              </label>
+              <label className="admin-modal__label">
+                Rol
+                <select className="admin-modal__input admin-modal__select" name="RolID" value={form.RolID} onChange={handleFormChange}>
+                  <option value="1">Empleado</option>
+                  <option value="2">Administrador de Facilities</option>
+                  <option value="3">Visitante</option>
+                  <option value="4">Administrador del Sistema</option>
+                  <option value="5">Guardia</option>
+                </select>
+              </label>
+              {formError && <p className="admin-modal__error">{formError}</p>}
+              <div className="admin-modal__actions">
+                <button type="button" className="admin-btn-export" onClick={() => setShowModal(false)}>Cancelar</button>
+                <button type="submit" className="admin-btn-export admin-btn-export--primary" disabled={saving}>
+                  {saving ? 'Guardando…' : 'Crear Usuario'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </section>
+      )}
 
       <button type="button" className="admin-fab" aria-label="Abrir soporte">
         <AdminIcon name="message" />
@@ -532,19 +634,52 @@ function UsuariosView() {
 }
 
 // ── Visitas data ─────────────────────────────────────────
-const visitasBigStats = [
-  { label: 'Programadas para Hoy', value: '27', color: '#f5efff' },
-  { label: 'Visitantes en Sitio', value: '12', color: '#12e0a4' },
-  { label: 'Próximos Días', value: '45', color: '#b100ff' },
-]
-
-const visitasList = [
-  { visitante: 'Maria Fernández', empresa: 'Cemex', anfitrion: 'Ana Martinez', fechaHora: '10/Mar 10:00AM', estado: 'Pre-registrado', acciones: ['Ver', 'ID'] },
-  { visitante: 'Juan Gómez', empresa: 'IBM', anfitrion: 'Gilberto R.', fechaHora: '10/Mar 11:30AM', estado: 'En sitio', acciones: ['Check-out'] },
-  { visitante: 'Laura Salas', empresa: 'Freelance', anfitrion: 'Carlos L.', fechaHora: '09/Mar 04:00PM', estado: 'Finalizada', acciones: ['Detalle'] },
-]
-
 function VisitasView() {
+  const [reservaciones, setReservaciones] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [search, setSearch] = useState('')
+  const [filtroEstatus, setFiltroEstatus] = useState('todos')
+  const [filtroFecha, setFiltroFecha] = useState(new Date().toISOString().slice(0, 10))
+
+  useEffect(() => {
+    getAllReservaciones()
+      .then((res) => setReservaciones(res.data || []))
+      .catch(() => setError('No se pudo cargar las reservaciones'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const today = new Date().toISOString().slice(0, 10)
+
+  const hoy = reservaciones.filter((r) => {
+    const fecha = r.Fecha ? String(r.Fecha).slice(0, 10) : ''
+    return fecha === today
+  })
+
+  const programadas = hoy.length
+  const activas = hoy.filter((r) => r.EstatusNombre === 'Activa').length
+  const proximos = reservaciones.filter((r) => {
+    const fecha = r.Fecha ? String(r.Fecha).slice(0, 10) : ''
+    return fecha > today
+  }).length
+
+  const filtradas = reservaciones.filter((r) => {
+    const fechaR = r.Fecha ? String(r.Fecha).slice(0, 10) : ''
+    const nombre = (r.EmpleadoNombre || '').toLowerCase()
+    const espacio = (r.EspacioNombre || '').toLowerCase()
+    const coincide = nombre.includes(search.toLowerCase()) || espacio.includes(search.toLowerCase())
+    const coincideEstatus = filtroEstatus === 'todos' || (r.EstatusNombre || '') === filtroEstatus
+    const coincideFecha = !filtroFecha || fechaR === filtroFecha
+    return coincide && coincideEstatus && coincideFecha
+  })
+
+  const fmtHora = (h) => (h ? String(h).slice(0, 5) : '—')
+  const fmtFecha = (f) => {
+    if (!f) return '—'
+    const d = new Date(f)
+    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`
+  }
+
   return (
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
@@ -561,70 +696,93 @@ function VisitasView() {
       </header>
 
       <section className="admin-visitas-stats">
-        {visitasBigStats.map((s) => (
-          <article key={s.label} className="admin-visitas-stat">
-            <span className="admin-visitas-stat__label">{s.label}</span>
-            <strong className="admin-visitas-stat__value" style={{ color: s.color }}>{s.value}</strong>
-          </article>
-        ))}
+        <article className="admin-visitas-stat">
+          <span className="admin-visitas-stat__label">Programadas para Hoy</span>
+          <strong className="admin-visitas-stat__value" style={{ color: '#f5efff' }}>{loading ? '…' : programadas}</strong>
+        </article>
+        <article className="admin-visitas-stat">
+          <span className="admin-visitas-stat__label">Activas en Sitio</span>
+          <strong className="admin-visitas-stat__value" style={{ color: '#12e0a4' }}>{loading ? '…' : activas}</strong>
+        </article>
+        <article className="admin-visitas-stat">
+          <span className="admin-visitas-stat__label">Próximos Días</span>
+          <strong className="admin-visitas-stat__value" style={{ color: '#b100ff' }}>{loading ? '…' : proximos}</strong>
+        </article>
       </section>
 
-      <section className="admin-management-tools" style={{ marginTop: '1.4rem' }}>
+      <section className="admin-management-tools" style={{ marginTop: '1.4rem', gridTemplateColumns: 'minmax(200px, 1fr) 150px 160px' }}>
         <label className="admin-search" style={{ flex: 1 }}>
           <AdminIcon name="search" />
-          <input type="search" placeholder="Buscar por nombre, empresa o anfitrión..." />
+          <input
+            type="search"
+            placeholder="Buscar por empleado o espacio..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </label>
-        <select className="admin-select" defaultValue="estado">
-          <option value="estado">Estado: Todos</option>
-          <option value="preregistrado">Pre-registrado</option>
-          <option value="ensitio">En sitio</option>
-          <option value="finalizada">Finalizada</option>
+        <input
+          type="date"
+          className="admin-select admin-select--date"
+          value={filtroFecha}
+          onChange={(e) => setFiltroFecha(e.target.value)}
+        />
+        <select className="admin-select" value={filtroEstatus} onChange={(e) => setFiltroEstatus(e.target.value)}>
+          <option value="todos">Estado: Todos</option>
+          <option value="Activa">Activa</option>
+          <option value="Cancelada">Cancelada</option>
         </select>
       </section>
 
       <section className="admin-card admin-card--management-table" style={{ marginTop: '1rem' }}>
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Visitante</th>
-                <th>Empresa</th>
-                <th>Anfitrión</th>
-                <th>Fecha y Hora</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visitasList.map((v) => (
-                <tr key={v.visitante}>
-                  <td>{v.visitante}</td>
-                  <td>{v.empresa}</td>
-                  <td>{v.anfitrion}</td>
-                  <td>{v.fechaHora}</td>
-                  <td>
-                    <span className={`admin-badge ${
-                      v.estado === 'En sitio' ? 'admin-badge--ok' :
-                      v.estado === 'Pre-registrado' ? 'admin-badge--yellow' :
-                      'admin-badge--arch'
-                    }`}>
-                      {v.estado === 'En sitio' && <span className="admin-badge__dot" />}
-                      {v.estado === 'Pre-registrado' && <span className="admin-badge__dot admin-badge__dot--yellow" />}
-                      {v.estado}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="admin-table-actions">
-                      {v.acciones.map((a) => (
-                        <button key={a} type="button" className={a === 'Check-out' ? 'admin-btn-ghost-sm admin-btn-ghost-sm--mint' : a === 'Detalle' ? 'admin-btn-ghost-sm admin-btn-ghost-sm--muted' : 'admin-btn-ghost-sm'}>{a}</button>
-                      ))}
-                    </div>
-                  </td>
+        {loading && <p className="admin-table-msg">Cargando reservaciones…</p>}
+        {error && <p className="admin-table-msg admin-table-msg--error">{error}</p>}
+        {!loading && !error && (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Empleado</th>
+                  <th>Espacio</th>
+                  <th>Fecha</th>
+                  <th>Entrada</th>
+                  <th>Salida</th>
+                  <th>Estado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtradas.map((r) => (
+                  <tr key={r.ReservacionID}>
+                    <td className="admin-table__id">R-{r.ReservacionID}</td>
+                    <td>{r.EmpleadoNombre || '—'}</td>
+                    <td>{r.EspacioNombre || '—'}</td>
+                    <td>{fmtFecha(r.Fecha)}</td>
+                    <td className="admin-table__mint">{fmtHora(r.HoraInicio)}</td>
+                    <td>{fmtHora(r.HoraFin)}</td>
+                    <td>
+                      <span className={`admin-badge ${
+                        r.EstatusNombre === 'Activa' ? 'admin-badge--ok' :
+                        r.EstatusNombre === 'Cancelada' ? 'admin-badge--rose' :
+                        'admin-badge--arch'
+                      }`}>
+                        {r.EstatusNombre === 'Activa' && <span className="admin-badge__dot" />}
+                        {r.EstatusNombre || '—'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {filtradas.length === 0 && (
+                  <tr><td colSpan={7} className="admin-table-msg">Sin reservaciones para hoy</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {!loading && !error && (
+          <div className="admin-pagination">
+            <span>Mostrando {filtradas.length} de {hoy.length} reservaciones hoy</span>
+          </div>
+        )}
       </section>
 
       <button type="button" className="admin-fab" aria-label="Abrir soporte">
@@ -635,19 +793,65 @@ function VisitasView() {
 }
 
 // ── Eventos data ──────────────────────────────────────────
-const eventosBigStats = [
-  { label: 'Eventos Activos', value: '3', color: '#12e0a4' },
-  { label: 'Próximos 7 días', value: '5', color: '#12e0a4' },
-  { label: 'Participantes Registrados', value: '86', color: '#b100ff' },
-]
-
-const eventosList = [
-  { dot: '#12e0a4', nombre: 'Town Hall Q1', descripcion: 'Presentación de resultados trimestrales', fecha: '15/Mar/26', hora: '10:00-12:00', ubicacion: 'Piso 5 – Auditorio', acciones: ['Desbloquear'] },
-  { dot: '#12e0a4', nombre: 'Workshop UX', descripcion: 'Taller de diseño centrado en usuario', fecha: '18/Mar/26', hora: '14:00-17:00', ubicacion: 'Piso 3 – Sala A', acciones: ['Editar', 'Desprogramar'] },
-  { dot: '#ffe93b', nombre: 'Onboarding Marzo', descripcion: 'Inducción nuevos ingresos wave 3', fecha: '22/Mar/26', hora: '09:00-13:00', ubicacion: 'Piso 2 – Training', acciones: ['Editar', 'Desprogramar'] },
-]
-
 function EventosView() {
+  const [reservaciones, setReservaciones] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [search, setSearch] = useState('')
+  const [filtroEstatus, setFiltroEstatus] = useState('todos')
+
+  useEffect(() => {
+    getAllReservaciones()
+      .then((res) => setReservaciones(res.data || []))
+      .catch(() => setError('No se pudo cargar los eventos'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const today = new Date().toISOString().slice(0, 10)
+
+  const activos = reservaciones.filter((r) => {
+    const fecha = r.Fecha ? String(r.Fecha).slice(0, 10) : ''
+    return fecha === today && r.EstatusNombre === 'Activa'
+  }).length
+
+  const proximos7 = reservaciones.filter((r) => {
+    const fecha = r.Fecha ? String(r.Fecha).slice(0, 10) : ''
+    const limite = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    return fecha > today && fecha <= limite
+  }).length
+
+  const totalParticipantes = reservaciones.filter((r) => {
+    const fecha = r.Fecha ? String(r.Fecha).slice(0, 10) : ''
+    return fecha >= today && r.EstatusNombre === 'Activa'
+  }).length
+
+  // Mostrar reservaciones de hoy en adelante como "eventos"
+  const eventos = reservaciones.filter((r) => {
+    const fecha = r.Fecha ? String(r.Fecha).slice(0, 10) : ''
+    return fecha >= today
+  })
+
+  const filtrados = eventos.filter((r) => {
+    const nombre = (r.EmpleadoNombre || '').toLowerCase()
+    const espacio = (r.EspacioNombre || '').toLowerCase()
+    const coincide = nombre.includes(search.toLowerCase()) || espacio.includes(search.toLowerCase())
+    const coincideEstatus = filtroEstatus === 'todos' || (r.EstatusNombre || '') === filtroEstatus
+    return coincide && coincideEstatus
+  })
+
+  const fmtHora = (h) => (h ? String(h).slice(0, 5) : '—')
+  const fmtFecha = (f) => {
+    if (!f) return '—'
+    const d = new Date(f)
+    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`
+  }
+
+  const dotColor = (estatus) => {
+    if (estatus === 'Activa') return '#12e0a4'
+    if (estatus === 'Cancelada') return '#ff3153'
+    return '#ffe93b'
+  }
+
   return (
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
@@ -664,52 +868,92 @@ function EventosView() {
       </header>
 
       <section className="admin-visitas-stats">
-        {eventosBigStats.map((s) => (
-          <article key={s.label} className="admin-visitas-stat">
-            <span className="admin-visitas-stat__label">{s.label}</span>
-            <strong className="admin-visitas-stat__value" style={{ color: s.color }}>{s.value}</strong>
-          </article>
-        ))}
+        <article className="admin-visitas-stat">
+          <span className="admin-visitas-stat__label">Eventos Activos</span>
+          <strong className="admin-visitas-stat__value" style={{ color: '#12e0a4' }}>{loading ? '…' : activos}</strong>
+        </article>
+        <article className="admin-visitas-stat">
+          <span className="admin-visitas-stat__label">Próximos 7 días</span>
+          <strong className="admin-visitas-stat__value" style={{ color: '#12e0a4' }}>{loading ? '…' : proximos7}</strong>
+        </article>
+        <article className="admin-visitas-stat">
+          <span className="admin-visitas-stat__label">Participantes Registrados</span>
+          <strong className="admin-visitas-stat__value" style={{ color: '#b100ff' }}>{loading ? '…' : totalParticipantes}</strong>
+        </article>
       </section>
 
-      <section className="admin-card admin-card--management-table" style={{ marginTop: '1.4rem' }}>
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Evento</th>
-                <th>Descripción</th>
-                <th>Fecha</th>
-                <th>Hora</th>
-                <th>Ubicación</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {eventosList.map((e) => (
-                <tr key={e.nombre}>
-                  <td>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ width: '0.55rem', height: '0.55rem', borderRadius: '999px', background: e.dot, flexShrink: 0 }} />
-                      {e.nombre}
-                    </span>
-                  </td>
-                  <td style={{ color: 'var(--admin-muted)' }}>{e.descripcion}</td>
-                  <td>{e.fecha}</td>
-                  <td>{e.hora}</td>
-                  <td>{e.ubicacion}</td>
-                  <td>
-                    <div className="admin-table-actions">
-                      {e.acciones.map((a) => (
-                        <button key={a} type="button" className={a === 'Desprogramar' ? 'admin-btn-danger-sm' : 'admin-btn-ghost-sm'}>{a}</button>
-                      ))}
-                    </div>
-                  </td>
+      <section className="admin-management-tools" style={{ marginTop: '1.4rem' }}>
+        <label className="admin-search" style={{ flex: 1 }}>
+          <AdminIcon name="search" />
+          <input
+            type="search"
+            placeholder="Buscar por empleado o espacio..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </label>
+        <select className="admin-select" value={filtroEstatus} onChange={(e) => setFiltroEstatus(e.target.value)}>
+          <option value="todos">Estado: Todos</option>
+          <option value="Activa">Activa</option>
+          <option value="Cancelada">Cancelada</option>
+        </select>
+      </section>
+
+      <section className="admin-card admin-card--management-table" style={{ marginTop: '1rem' }}>
+        {loading && <p className="admin-table-msg">Cargando eventos…</p>}
+        {error && <p className="admin-table-msg admin-table-msg--error">{error}</p>}
+        {!loading && !error && (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Empleado</th>
+                  <th>Espacio</th>
+                  <th>Fecha</th>
+                  <th>Hora</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtrados.map((r) => (
+                  <tr key={r.ReservacionID}>
+                    <td>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ width: '0.55rem', height: '0.55rem', borderRadius: '999px', background: dotColor(r.EstatusNombre), flexShrink: 0 }} />
+                        {r.EmpleadoNombre || '—'}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--admin-muted)' }}>{r.EspacioNombre || '—'}</td>
+                    <td>{fmtFecha(r.Fecha)}</td>
+                    <td className="admin-table__mint">{fmtHora(r.HoraInicio)} – {fmtHora(r.HoraFin)}</td>
+                    <td>
+                      <span className={`admin-badge ${
+                        r.EstatusNombre === 'Activa' ? 'admin-badge--ok' :
+                        r.EstatusNombre === 'Cancelada' ? 'admin-badge--rose' :
+                        'admin-badge--arch'
+                      }`}>{r.EstatusNombre || '—'}</span>
+                    </td>
+                    <td>
+                      <div className="admin-table-actions">
+                        <button type="button" className="admin-btn-ghost-sm">Editar</button>
+                        <button type="button" className="admin-btn-danger-sm">Cancelar</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filtrados.length === 0 && (
+                  <tr><td colSpan={6} className="admin-table-msg">Sin eventos próximos</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {!loading && !error && (
+          <div className="admin-pagination">
+            <span>Mostrando {filtrados.length} de {eventos.length} eventos</span>
+          </div>
+        )}
       </section>
 
       <button type="button" className="admin-fab" aria-label="Abrir soporte">
@@ -930,13 +1174,21 @@ export default function AdminDashboardPage() {
         : 'Conectado - sin registros'
   const liveClassName = `admin-main__live ${error ? 'is-error' : !hasBackendData && !loading ? 'is-warning' : ''}`
 
+  const navigate = useNavigate()
   return (
     <div className="admin-dashboard">
       <aside className="admin-sidebar">
         <div className="admin-brand">
           <div className="admin-brand__topline">
             <span className="admin-brand__arrow">›</span>
-            <span>accenture</span>
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate('/')}
+              onKeyDown={(e) => e.key === 'Enter' && navigate('/')}
+              style={{ cursor: 'pointer' }}
+              title="Volver al inicio"
+            >accenture</span>
             <span className="admin-brand__slashes">//</span>
             <span className="admin-brand__name">WORKHUB MTY</span>
           </div>

@@ -1,6 +1,25 @@
 import { apiRequest } from './api'
 import { notifyDashboardChanged } from './dashboard'
 
+// ── Empleados (Admin) ─────────────────────────────────────
+
+export function getAllEmpleados() {
+  return apiRequest('/empleados')
+}
+
+export function createEmpleado({ Nombre, Correo, Contrasena, RolID, NivelID }) {
+  return apiRequest('/empleados', {
+    method: 'POST',
+    body: { Nombre, Correo, Contrasena, RolID, NivelID },
+  })
+}
+
+// ── Reservaciones (Admin) ─────────────────────────────────
+
+export function getAllReservaciones() {
+  return apiRequest('/reservaciones')
+}
+
 // ── Espacios ──────────────────────────────────────────────
 
 export function getEspaciosDisponibilidad(fecha, horaInicio, horaFin) {
