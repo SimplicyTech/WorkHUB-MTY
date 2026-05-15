@@ -3,10 +3,18 @@ import { notifyDashboardChanged } from './dashboard'
 
 // ── Espacios ──────────────────────────────────────────────
 
-export function getEspaciosDisponibilidad(fecha, horaInicio, horaFin) {
-  return apiRequest(
-    `/espacios/disponibilidad?fecha=${fecha}&horaInicio=${horaInicio}&horaFin=${horaFin}`
-  )
+export function getEspaciosDisponibilidad(fecha, horaInicio, horaFin, pisoId) {
+  let url = `/espacios/disponibilidad?fecha=${fecha}&horaInicio=${horaInicio}&horaFin=${horaFin}`
+  if (pisoId !== undefined && pisoId !== null && pisoId !== '') {
+    url += `&pisoId=${pisoId}`
+  }
+  return apiRequest(url)
+}
+
+// ── Pisos ─────────────────────────────────────────────────
+
+export function getPisos() {
+  return apiRequest('/pisos')
 }
 
 // ── Reservaciones ─────────────────────────────────────────
@@ -27,10 +35,20 @@ export function createReservacion({
   HoraInicio,
   HoraFin,
   Descripcion,
+  RequiereEstacionamiento,
 }) {
   return apiRequest('/reservaciones', {
     method: 'POST',
-    body: { EmpleadoID, EspacioID, VisitaID, Fecha, HoraInicio, HoraFin, Descripcion },
+    body: {
+      EmpleadoID,
+      EspacioID,
+      VisitaID,
+      Fecha,
+      HoraInicio,
+      HoraFin,
+      Descripcion,
+      RequiereEstacionamiento,
+    },
   }).then((response) => {
     notifyDashboardChanged()
     return response
@@ -40,6 +58,15 @@ export function createReservacion({
 export function cancelReservacion(reservacionId) {
   return apiRequest(`/reservaciones/${reservacionId}`, {
     method: 'DELETE',
+  }).then((response) => {
+    notifyDashboardChanged()
+    return response
+  })
+}
+
+export function checkOutReservacion(reservacionId) {
+  return apiRequest(`/reservaciones/${reservacionId}/checkout`, {
+    method: 'POST',
   }).then((response) => {
     notifyDashboardChanged()
     return response

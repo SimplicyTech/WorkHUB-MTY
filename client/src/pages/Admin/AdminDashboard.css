@@ -423,9 +423,18 @@
 }
 
 .admin-floor-list__bar {
+  position: relative;
   height: 1.75rem;
   border-radius: 0.35rem;
   background: rgba(78, 24, 116, 0.45);
+  overflow: hidden;
+}
+
+.admin-floor-list__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #a100ff 0%, #ff3355 100%);
+  border-radius: 0.35rem;
+  transition: width 0.4s ease;
 }
 
 .admin-floor-list__row strong {

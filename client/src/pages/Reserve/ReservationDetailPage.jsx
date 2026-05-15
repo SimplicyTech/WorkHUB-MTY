@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { getReservacionById, cancelReservacion } from '../../services/reservations'
+import { getReservacionById, cancelReservacion, checkOutReservacion } from '../../services/reservations'
 import Qrgenerator from '../../components/Confirmation/Qrgenerator'
-
-const GRACE_MINUTES = 10
+import { GRACE_MINUTES, classifyReservation } from '../../utils/reservationStatus'
 
 function parseLocalDate(fecha) {
   if (!fecha) return null
@@ -56,6 +55,7 @@ export default function ReservationDetailPage() {
 
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [checkingOut, setCheckingOut] = useState(false)
 
   const [now, setNow] = useState(() => new Date())
 
@@ -85,7 +85,8 @@ export default function ReservationDetailPage() {
     () => buildStartDate(reservation?.Fecha, reservation?.HoraInicio),
     [reservation?.Fecha, reservation?.HoraInicio]
   )
-  const isCancelled = (reservation?.EstatusNombre || '').toLowerCase() === 'cancelada'
+  const estatusNombreLower = (reservation?.EstatusNombre || '').toLowerCase().trim()
+  const isCancelled = estatusNombreLower === 'cancelada'
   const endDate = useMemo(
     () => buildEndDate(reservation?.Fecha, reservation?.HoraFin),
     [reservation?.Fecha, reservation?.HoraFin]
@@ -97,11 +98,13 @@ export default function ReservationDetailPage() {
     [startDate]
   )
 
+  // El estatus del backend manda. Solo mostramos el contador de gracia
+  // si la BD dice 'En periodo de gracia' (y aún queda tiempo en el reloj
+  // local, para que el countdown no muestre negativos si el reloj se desfasó).
   const inGracePeriod = !!(
-    !isCancelled &&
+    estatusNombreLower === 'en periodo de gracia' &&
     startDate &&
     graceEndsAt &&
-    now >= startDate &&
     now < graceEndsAt
   )
 
@@ -122,6 +125,24 @@ export default function ReservationDetailPage() {
       setShowCancelConfirm(false)
     }
   }
+
+  const handleCheckOut = async () => {
+    setCheckingOut(true)
+    try {
+      await checkOutReservacion(reservation.ReservacionID)
+      navigate('/mis-reservaciones', { replace: true })
+    } catch (err) {
+      alert(err?.error || 'Error al hacer check-out')
+      setCheckingOut(false)
+    }
+  }
+
+  // Reglas de visibilidad de los botones, derivadas del estatus del backend:
+  //   - Cancelar: solo si la reservación está 'Próxima'
+  //   - Check-out: solo si la reservación está 'Activa' (hubo check-in)
+  const estatusActual = (reservation?.EstatusNombre || '').toLowerCase().trim()
+  const canCancel = estatusActual === 'próxima' || estatusActual === 'proxima'
+  const canCheckOut = estatusActual === 'activa'
 
   if (loading) {
     return (
@@ -152,16 +173,12 @@ export default function ReservationDetailPage() {
 
   const tipo = reservation.EspacioTipo || 'Espacio'
   const identificador = reservation.EspacioNombre || `#${reservation.EspacioID}`
-  const pisoZona = reservation.EspacioPisoID
-    ? `Piso ${reservation.EspacioPisoID} — Área General`
-    : 'Sin asignar'
+  const pisoZona = reservation.EspacioPisoNombre || 'Sin asignar'
   const fechaLabel = formatDateLong(reservation.Fecha)
   const horarioLabel = formatTimeRange(reservation.HoraInicio, reservation.HoraFin)
-  const parkingLabel = reservation.EstacionamientoAsignado?.Nombre
-    || reservation.EstacionamientoAsignado?.Etiqueta
-    || reservation.CajonNombre
-    || reservation.Descripcion
-    || 'Sin estacionamiento'
+  const parkingLabel = reservation.EstacionamientoNombre
+    || reservation.EstacionamientoAsignado?.Nombre
+    || (reservation.Descripcion === 'Sin estacionamiento' ? 'Sin estacionamiento' : 'No asignado')
   const code = reservationCode(reservation.ReservacionID)
 
   // Grace period countdown
@@ -197,7 +214,7 @@ export default function ReservationDetailPage() {
                 style={{ backgroundColor: 'rgba(255,50,70,0.20)' }}
               >
                 <p className="font-mono text-[11px] font-semibold text-[#ff3246]">
-                  Periodo de grasa activo — Haz check-in antes de que se cancele
+                  Periodo de gracia activo — Haz check-in antes de que se cancele tu reserva
                 </p>
                 <div className="flex items-center justify-center gap-2">
                   <div
@@ -235,28 +252,25 @@ export default function ReservationDetailPage() {
 
             {/* Action buttons */}
             <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                disabled
-                className="flex h-14 flex-1 items-center justify-center rounded-lg bg-[#200040] px-6 font-heading text-base font-semibold uppercase text-primary opacity-80"
-              >
-                Escanear QR
-              </button>
-              <button
-                type="button"
-                disabled
-                className="flex h-14 flex-1 items-center justify-center rounded-lg border border-[#A100FF] bg-[#200040] px-6 font-heading text-base font-semibold uppercase text-primary opacity-80"
-              >
-                Solicitar estacionamiento
-              </button>
-              {!isCancelled && !isPast && (
+              {canCancel && (
                 <button
                   type="button"
                   onClick={() => setShowCancelConfirm(true)}
-                  className="flex h-14 items-center justify-center rounded-lg px-8 font-heading text-base font-semibold uppercase text-[#ff3246] transition-colors hover:bg-[rgba(255,50,70,0.28)]"
+                  className="flex h-14 cursor-pointer items-center justify-center rounded-lg border-none px-8 font-heading text-base font-semibold uppercase text-[#ff3246] transition-colors hover:bg-[rgba(255,50,70,0.32)]"
                   style={{ backgroundColor: 'rgba(255,50,70,0.20)' }}
                 >
                   Cancelar
+                </button>
+              )}
+              {canCheckOut && (
+                <button
+                  type="button"
+                  onClick={handleCheckOut}
+                  disabled={checkingOut}
+                  className="flex h-14 cursor-pointer items-center justify-center rounded-lg border-none px-8 font-heading text-base font-semibold uppercase text-[#05f0a5] transition-colors hover:bg-[rgba(5,240,165,0.32)] disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{ backgroundColor: 'rgba(5,240,165,0.20)' }}
+                >
+                  {checkingOut ? 'Cerrando...' : 'Check-out'}
                 </button>
               )}
             </div>
@@ -272,7 +286,7 @@ export default function ReservationDetailPage() {
             </div>
             <p className="text-center font-mono text-xs font-semibold text-white">{code}</p>
             <p className="text-center font-mono text-[9px] leading-[1.5] text-text-muted">
-              Escanea este código en tu escritorio para hacer check-in
+              Presenta este código con un guardia para hacer check-in
             </p>
           </aside>
         </div>
@@ -295,7 +309,7 @@ export default function ReservationDetailPage() {
                 type="button"
                 onClick={() => setShowCancelConfirm(false)}
                 disabled={cancelling}
-                className="inline-flex h-10 items-center justify-center rounded-lg bg-[#200040] px-5 font-mono text-xs text-text-muted transition-colors hover:text-white"
+                className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border-none bg-[#200040] px-5 font-mono text-xs text-text-muted transition-colors hover:bg-[#2d0058] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Volver
               </button>
@@ -303,7 +317,7 @@ export default function ReservationDetailPage() {
                 type="button"
                 onClick={handleCancel}
                 disabled={cancelling}
-                className="inline-flex h-10 items-center justify-center rounded-lg px-5 font-mono text-xs font-semibold text-white transition-colors hover:opacity-90"
+                className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border-none px-5 font-mono text-xs font-semibold text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ backgroundColor: '#ff3246' }}
               >
                 {cancelling ? 'Cancelando...' : 'Sí, cancelar'}

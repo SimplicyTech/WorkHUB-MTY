@@ -887,6 +887,7 @@ export default function AdminDashboardPage() {
     ? dashboard.floors.map((floor) => ({
         label: floor.label,
         value: formatPercent(floor.occupancyPercent),
+        percent: clampPercent(floor.occupancyPercent),
         accent: floor.label === dashboard.selectedFloor,
       }))
     : []
@@ -1027,13 +1028,24 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="admin-floor-list">
-              {dashboardFloorRows.map((floor) => (
-                <div key={floor.label} className="admin-floor-list__row">
-                  <span>{floor.label}</span>
-                  <div className="admin-floor-list__bar" />
-                  <strong className={floor.accent ? 'is-accent' : ''}>{floor.value}</strong>
+              {dashboardFloorRows.length > 0 ? (
+                dashboardFloorRows.map((floor) => (
+                  <div key={floor.label} className="admin-floor-list__row">
+                    <span>{floor.label}</span>
+                    <div className="admin-floor-list__bar">
+                      <div
+                        className="admin-floor-list__bar-fill"
+                        style={{ width: `${floor.percent}%` }}
+                      />
+                    </div>
+                    <strong className={floor.accent ? 'is-accent' : ''}>{floor.value}</strong>
+                  </div>
+                ))
+              ) : (
+                <div className="admin-empty-state admin-empty-state--compact">
+                  {loading ? 'Cargando pisos...' : 'Sin pisos para mostrar'}
                 </div>
-              ))}
+              )}
             </div>
           </article>
 
