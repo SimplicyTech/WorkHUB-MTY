@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getPisos } from '../../services/reservations'
+import CustomDatePicker from './CustomDatePicker'
+import CustomTimePicker from './CustomTimePicker'
 
 // PisoID que actualmente tiene mapa interactivo implementado.
 // El resto de los pisos se listan pero quedan deshabilitados.
@@ -162,15 +164,11 @@ export default function BookingSidebar({
           <label className="font-mono text-[11px] text-white font-semibold">
             Fecha
           </label>
-          <div className="relative">
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => handleDateChange(e.target.value)}
-              min={getTodayString()}
-              className="w-full h-11 px-3 pr-8 rounded-lg bg-surface-badge font-mono text-[13px] text-white border-none outline-none cursor-pointer [color-scheme:dark]"
-            />
-          </div>
+          <CustomDatePicker
+            value={date}
+            min={getTodayString()}
+            onChange={handleDateChange}
+          />
         </div>
 
         {/* Horario */}
@@ -179,29 +177,21 @@ export default function BookingSidebar({
             <label className="font-mono text-[11px] text-white font-semibold">
               Hora Entrada
             </label>
-            <div className="relative">
-              <input
-                type="time"
-                value={entryTime}
-                min={isToday(date) ? `${String(Math.floor(getNowMinutes() / 60)).padStart(2, '0')}:${String(getNowMinutes() % 60).padStart(2, '0')}` : undefined}
-                onChange={(e) => handleEntryTimeChange(e.target.value)}
-                className="w-full h-11 px-3 pr-8 rounded-lg bg-surface-badge font-mono text-[13px] text-white border-none outline-none cursor-pointer [color-scheme:dark]"
-              />
-            </div>
+            <CustomTimePicker
+              value={entryTime}
+              min={isToday(date) ? `${String(Math.floor(getNowMinutes() / 60)).padStart(2, '0')}:${String(getNowMinutes() % 60).padStart(2, '0')}` : undefined}
+              onChange={handleEntryTimeChange}
+            />
           </div>
           <div className="flex min-w-0 flex-col gap-1.5">
             <label className="font-mono text-[11px] text-white font-semibold">
               Hora Salida
             </label>
-            <div className="relative">
-              <input
-                type="time"
-                value={exitTime}
-                min={entryTime}
-                onChange={(e) => handleExitTimeChange(e.target.value)}
-                className="w-full h-11 px-3 pr-8 rounded-lg bg-surface-badge font-mono text-[13px] text-white border-none outline-none cursor-pointer [color-scheme:dark]"
-              />
-            </div>
+            <CustomTimePicker
+              value={exitTime}
+              min={entryTime}
+              onChange={handleExitTimeChange}
+            />
           </div>
         </div>
         {timeError && (
