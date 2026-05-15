@@ -152,7 +152,7 @@ export default function ReadQRPage() {
         {!payload && !error ? (
           <button
             onClick={scanning ? reset : start}
-            className="w-full h-14 rounded-xl font-heading text-sm font-bold text-white tracking-wider transition-colors"
+            className="w-full h-14 cursor-pointer rounded-xl border-none font-heading text-sm font-bold text-white tracking-wider transition-colors hover:opacity-90"
             style={{ background: scanning ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#7C00FF,#460073)' }}
           >
             {scanning ? 'DETENER CÁMARA' : 'ACTIVAR CÁMARA'}
@@ -160,7 +160,7 @@ export default function ReadQRPage() {
         ) : (
           <button
             onClick={reset}
-            className="w-full h-14 rounded-xl font-heading text-sm font-bold text-white tracking-wider border border-white/10 hover:border-primary/40 transition-colors"
+            className="w-full h-14 cursor-pointer rounded-xl font-heading text-sm font-bold text-white tracking-wider border border-white/10 transition-colors hover:border-primary/40"
             style={{ background: 'rgba(255,255,255,0.04)' }}
           >
             ESCANEAR OTRO
@@ -168,7 +168,7 @@ export default function ReadQRPage() {
         )}
 
         <button onClick={() => navigate(-1)}
-          className="font-mono text-[11px] text-white/25 hover:text-white/50 transition-colors text-center">
+          className="cursor-pointer border-none bg-transparent font-mono text-[11px] text-white/25 transition-colors hover:text-white/50 text-center">
           ← volver
         </button>
 

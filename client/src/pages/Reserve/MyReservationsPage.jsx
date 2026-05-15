@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
 import { getReservacionesByEmpleado } from '../../services/reservations'
+import { classifyReservation, getStatusStyle } from '../../utils/reservationStatus'
 
 const FILTERS = [
   { key: 'active', label: 'Activas' },
@@ -10,31 +11,6 @@ const FILTERS = [
   { key: 'cancelled', label: 'Canceladas' },
 ]
 
-const GRACE_MINUTES = 11
-
-const STATUS_STYLE = {
-  active: {
-    label: 'En periodo de grasa',
-    text: '#05f0a5',
-    bg: 'rgba(5,240,165,0.20)',
-  },
-  upcoming: {
-    label: 'Confirmada',
-    text: '#A100FF',
-    bg: 'rgba(161,0,255,0.20)',
-  },
-  past: {
-    label: 'Finalizada',
-    text: '#96968c',
-    bg: 'rgba(150,150,140,0.18)',
-  },
-  cancelled: {
-    label: 'Cancelada',
-    text: '#ff5c7a',
-    bg: 'rgba(255,92,122,0.16)',
-  },
-}
-
 function parseLocalDate(fecha) {
   if (!fecha) return null
   // Tomamos solo YYYY-MM-DD para evitar el desfase de zona horaria
@@ -42,28 +18,6 @@ function parseLocalDate(fecha) {
   const dateOnly = String(fecha).slice(0, 10)
   const [y, m, d] = dateOnly.split('-').map(Number)
   return new Date(y, m - 1, d)
-}
-
-function classifyReservation(r) {
-  const estatusName = (r.EstatusNombre || '').toLowerCase()
-  if (estatusName === 'cancelada') return 'cancelled'
-
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const resDay = parseLocalDate(r.Fecha)
-  if (!resDay) return 'past'
-
-  if (resDay < today) return 'past'
-  if (resDay > today) return 'upcoming'
-
-  const [startH, startM] = (r.HoraInicio || '00:00').split(':').map(Number)
-  const startMinutes = startH * 60 + startM
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  const graceEndMinutes = startMinutes + GRACE_MINUTES
-
-  if (nowMinutes < startMinutes) return 'upcoming'
-  if (nowMinutes < graceEndMinutes) return 'active'
-  return 'past'
 }
 
 function formatDate(dateStr) {
@@ -161,7 +115,7 @@ export default function MyReservationsPage() {
                 key={filter.key}
                 type="button"
                 onClick={() => setActiveFilter(filter.key)}
-                className={`flex h-10 items-center gap-2 rounded-t-lg px-6 font-mono text-[11px] transition-colors ${
+                className={`flex h-10 cursor-pointer items-center gap-2 rounded-t-lg border-none px-6 font-mono text-[11px] transition-colors ${
                   isActive
                     ? 'bg-[#1a0033] font-semibold text-white'
                     : 'bg-[#200040] font-normal text-text-muted hover:text-white'
@@ -187,7 +141,7 @@ export default function MyReservationsPage() {
               </p>
               <button
                 onClick={fetchReservations}
-                className="mt-8 inline-flex h-10 items-center justify-center rounded-lg bg-[#A100FF] px-6 font-heading text-[13px] font-semibold uppercase text-white hover:bg-[#b524ff]"
+                className="mt-8 inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border-none bg-[#A100FF] px-6 font-heading text-[13px] font-semibold uppercase text-white transition-colors hover:bg-[#b524ff]"
               >
                 Reintentar
               </button>
@@ -214,7 +168,7 @@ export default function MyReservationsPage() {
         ) : (
           <div className="flex flex-col gap-4">
             {filteredReservations.map((reservation) => {
-              const status = STATUS_STYLE[reservation.classification]
+              const status = getStatusStyle(reservation)
 
               return (
                 <article

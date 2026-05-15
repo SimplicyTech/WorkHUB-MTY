@@ -1,7 +1,8 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/useAuth'
-import { createReservacion, getReservacionesByEmpleado } from '../../services/reservations'
+import { createReservacion, getReservacionesByEmpleado, getReservacionById } from '../../services/reservations'
+import { classifyReservation } from '../../utils/reservationStatus'
 import Qrgenerator from '../../components/Confirmation/Qrgenerator'
 
 function getDateKey(dateStr) {
@@ -56,10 +57,11 @@ export default function ConfirmationPage() {
       try {
         const reservationsRes = await getReservacionesByEmpleado(user.empleadoId)
         const currentDateKey = getDateKey(date)
+        // Sólo bloquean las del mismo día que NO sean canceladas.
+        // Las liberadas (no-show) también bloquean: el castigo dura todo el día.
         const existingSameDay = (reservationsRes.data || []).some((r) => {
-          const isSameDay = getDateKey(r.Fecha) === currentDateKey
-          const isCancelled = (r.EstatusNombre || '').toLowerCase() === 'cancelada'
-          return isSameDay && !isCancelled
+          if (getDateKey(r.Fecha) !== currentDateKey) return false
+          return classifyReservation(r) !== 'cancelled'
         })
 
         if (existingSameDay) {
@@ -68,7 +70,7 @@ export default function ConfirmationPage() {
           return
         }
 
-        // El backend ya hace auto-asignación de estacionamiento
+        // El backend solo auto-asigna estacionamiento si RequiereEstacionamiento es true.
         const res = await createReservacion({
           EmpleadoID: user.empleadoId,
           EspacioID: espacioID,
@@ -76,9 +78,20 @@ export default function ConfirmationPage() {
           HoraInicio: entryTime,
           HoraFin: exitTime,
           Descripcion: parking ? 'Con estacionamiento' : 'Sin estacionamiento',
+          RequiereEstacionamiento: !!parking,
         })
 
-        setReservationData(res.data)
+        // Pedimos el detalle completo para traer EspacioPisoNombre/EspacioNombre.
+        // Conservamos EstacionamientoAsignado que solo viene en la respuesta del POST.
+        try {
+          const full = await getReservacionById(res.data.ReservacionID)
+          setReservationData({
+            ...(full.data || {}),
+            EstacionamientoAsignado: res.data.EstacionamientoAsignado,
+          })
+        } catch {
+          setReservationData(res.data)
+        }
         setSaving(false)
       } catch (err) {
         // Verificar si es un error de reservación solapada
@@ -112,9 +125,14 @@ export default function ConfirmationPage() {
     || parkingDescription
     || (parking ? 'No disponible' : 'No solicitado')
 
+  const tipo = reservationData?.EspacioTipo || 'Espacio'
+  const identificador = reservationData?.EspacioNombre
+    || (reservationData?.EspacioID ? `#${reservationData.EspacioID}` : deskId)
+
   const detailRows = [
-    { label: 'Escritorio:', value: deskId },
-    { label: 'Piso / Zona:', value: 'Piso 3 — Área General' },
+    { label: 'Tipo:', value: tipo },
+    { label: 'Identificador:', value: identificador },
+    { label: 'Piso / Zona:', value: reservationData?.EspacioPisoNombre || '—' },
     { label: 'Fecha:', value: dateLabel },
     { label: 'Horario:', value: timeLabel },
     {
@@ -221,7 +239,7 @@ export default function ConfirmationPage() {
                     {reservationId}
                   </span>
                   <span className="font-mono text-[8px] text-text-muted text-center leading-[1.5]">
-                    Presenta este código en tu escritorio para hacer check-in
+                    Presenta este código con un guardia para hacer check-in
                   </span>
                 </div>
               </div>
