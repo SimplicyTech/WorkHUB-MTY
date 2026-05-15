@@ -50,6 +50,7 @@ export default function ReservePage() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [fechaBloqueada, setFechaBloqueada] = useState(null)
 
   // Track current filters from the sidebar
   const filtersRef = useRef({ date: '', entryTime: '09:00', exitTime: '18:00' })
@@ -81,6 +82,7 @@ export default function ReservePage() {
   const handleFiltersChange = useCallback(
     (filters) => {
       filtersRef.current = filters
+      setFechaBloqueada(filters?.fechaBloqueada || null)
       // Deselect desk when filters change
       setSelectedDesk(null)
       fetchAvailability(filters)
@@ -134,14 +136,40 @@ export default function ReservePage() {
           </div>
         </div>
       ) : (
-        <FloorMap
-          desks={deskData}
-          salas={salasData}
-          rooms={fallbackRooms}
-          selectedDesk={selectedDesk}
-          onSelectDesk={handleSelectDesk}
-          loading={loading}
-        />
+        <div className="relative flex-1 flex">
+          <FloorMap
+            desks={deskData}
+            salas={salasData}
+            rooms={fallbackRooms}
+            selectedDesk={selectedDesk}
+            onSelectDesk={fechaBloqueada ? () => {} : handleSelectDesk}
+            loading={loading}
+          />
+          {fechaBloqueada && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 px-6">
+              <div
+                className="max-w-md w-full rounded-2xl border p-6 flex flex-col gap-3 text-center"
+                style={{
+                  backgroundColor: 'rgba(255,50,70,0.10)',
+                  borderColor: 'rgba(255,50,70,0.55)',
+                }}
+              >
+                <h3 className="font-heading text-xl font-bold uppercase text-white">
+                  No puedes reservar este día
+                </h3>
+                <p
+                  className="font-mono text-[12px] leading-[1.6]"
+                  style={{ color: '#ff3246' }}
+                >
+                  {fechaBloqueada.motivo}
+                </p>
+                <p className="font-mono text-[11px] text-text-muted">
+                  Selecciona otra fecha en el calendario para continuar.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )

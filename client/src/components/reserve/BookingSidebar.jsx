@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { getPisos } from '../../services/reservations'
+import { getPisos, getEmpleadoRango, getEmpleadoDisponibilidadFecha } from '../../services/reservations'
+import { useAuth } from '../../context/useAuth'
 import CustomDatePicker from './CustomDatePicker'
 import CustomTimePicker from './CustomTimePicker'
 
@@ -10,6 +11,12 @@ const PISO_CON_MAPA_ID = 2
 function getTodayString() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function addDaysISO(isoDate, days) {
+  const [y, m, d] = isoDate.split('-').map(Number)
+  const dt = new Date(y, m - 1, d + days)
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 }
 
 function getTimeMinutes(time) {
@@ -27,8 +34,14 @@ function getDefaultTimes() {
   return { entry, exit }
 }
 
+const MIN_DURACION_MIN = 20
+
 function isExitAfterEntry(entryTime, exitTime) {
   return getTimeMinutes(exitTime) > getTimeMinutes(entryTime)
+}
+
+function hasMinDuration(entryTime, exitTime) {
+  return getTimeMinutes(exitTime) - getTimeMinutes(entryTime) >= MIN_DURACION_MIN
 }
 
 function isToday(dateStr) {
@@ -47,12 +60,70 @@ export default function BookingSidebar({
   loadingStats,
   onFiltersChange,
 }) {
+  const { user } = useAuth()
   const defaultTimes = getDefaultTimes()
   const [date, setDate] = useState(getTodayString)
   const [entryTime, setEntryTime] = useState(defaultTimes.entry)
   const [exitTime, setExitTime] = useState(defaultTimes.exit)
   const [floor, setFloor] = useState(String(PISO_CON_MAPA_ID))
   const [pisos, setPisos] = useState([])
+  const [rango, setRango] = useState(null)
+  const [fechaBloqueada, setFechaBloqueada] = useState(null) // { motivo } o null
+
+  useEffect(() => {
+    if (!user?.empleadoId) return
+    let cancelled = false
+    getEmpleadoRango(user.empleadoId)
+      .then((res) => {
+        if (cancelled) return
+        setRango(res.data || null)
+      })
+      .catch((err) => {
+        console.error('Error al cargar rango:', err)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user?.empleadoId])
+
+  const diasAnticipacion = Number(rango?.DiasAnticipacion) || 1
+  const maxDate = addDaysISO(getTodayString(), diasAnticipacion)
+
+  // Verifica si el empleado puede reservar en la fecha seleccionada.
+  // Bloquea cuando ya tiene una reserva ese día (cualquier estatus excepto Cancelada).
+  useEffect(() => {
+    if (!user?.empleadoId || !date) {
+      setFechaBloqueada(null)
+      return
+    }
+    let cancelled = false
+    getEmpleadoDisponibilidadFecha(user.empleadoId, date)
+      .then((res) => {
+        if (cancelled) return
+        const d = res.data || {}
+        setFechaBloqueada(d.puedeReservar === false ? { motivo: d.motivo } : null)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setFechaBloqueada(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user?.empleadoId, date])
+
+  // Notificamos al padre para que pueda mostrar el banner sobre el mapa.
+  useEffect(() => {
+    onFiltersChange?.({ date, entryTime, exitTime, floor, reserveFor, fechaBloqueada })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fechaBloqueada])
+
+  // Si el usuario ya tenía una fecha más allá del límite (cambio de rango,
+  // recarga, etc.), la recortamos al máximo permitido.
+  useEffect(() => {
+    if (!rango) return
+    if (date > maxDate) setDate(maxDate)
+  }, [rango, maxDate, date])
 
   useEffect(() => {
     let cancelled = false
@@ -81,6 +152,10 @@ export default function BookingSidebar({
       setTimeError('La hora de salida debe ser después de la hora de llegada.')
       return false
     }
+    if (!hasMinDuration(entry, exit)) {
+      setTimeError(`La duración mínima de una reservación es de ${MIN_DURACION_MIN} minutos.`)
+      return false
+    }
     if (isToday(selectedDate) && getTimeMinutes(entry) < getNowMinutes()) {
       setTimeError('No puedes reservar en una hora que ya pasó.')
       return false
@@ -90,6 +165,7 @@ export default function BookingSidebar({
   }
 
   const handleReserve = () => {
+    if (fechaBloqueada) return
     if (!validateTimes(entryTime, exitTime)) {
       return
     }
@@ -114,7 +190,11 @@ export default function BookingSidebar({
 
   const displayStats = stats || { available: 0, occupied: 0, total: 0 }
   const isPastEntryToday = isToday(date) && getTimeMinutes(entryTime) < getNowMinutes()
-  const isValidTimeRange = isExitAfterEntry(entryTime, exitTime) && !isPastEntryToday
+  const isValidTimeRange =
+    isExitAfterEntry(entryTime, exitTime) &&
+    hasMinDuration(entryTime, exitTime) &&
+    !isPastEntryToday &&
+    !fechaBloqueada
 
   return (
     <div className="w-full lg:w-[360px] lg:shrink-0 bg-surface flex flex-col lg:h-full">
@@ -167,8 +247,27 @@ export default function BookingSidebar({
           <CustomDatePicker
             value={date}
             min={getTodayString()}
+            max={maxDate}
             onChange={handleDateChange}
           />
+          {rango && (
+            <p className="font-mono text-[10px] text-text-muted">
+              Rango <span className="text-accent">{rango.Rango}</span> — Puedes reservar hasta{' '}
+              <span className="text-white">{diasAnticipacion} día{diasAnticipacion === 1 ? '' : 's'}</span> por adelantado.
+            </p>
+          )}
+          {fechaBloqueada && (
+            <p
+              className="font-mono text-[10px] rounded-md px-2 py-1.5 border"
+              style={{
+                color: '#ff3246',
+                backgroundColor: 'rgba(255,50,70,0.12)',
+                borderColor: 'rgba(255,50,70,0.45)',
+              }}
+            >
+              {fechaBloqueada.motivo}
+            </p>
+          )}
         </div>
 
         {/* Horario */}

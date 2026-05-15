@@ -1,12 +1,36 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
+import { getEmpleadoRango } from '../../services/reservations'
 
 const navLinks = [
   { label: 'Inicio', to: '/' },
   { label: 'Reservar', to: '/reservar' },
   { label: 'Mis Reservaciones', to: '/mis-reservaciones' },
+  { label: 'Mis Puntos', to: '/puntos' },
 ]
+
+// Paleta para los badges de rango.
+const RANGO_COLORS = {
+  Bronce:  { fg: '#CD7F32', bg: 'rgba(205,127,50,0.18)', border: 'rgba(205,127,50,0.55)' },
+  Plata:   { fg: '#C0C0C0', bg: 'rgba(192,192,192,0.16)', border: 'rgba(192,192,192,0.55)' },
+  Oro:     { fg: '#FFD700', bg: 'rgba(255,215,0,0.16)',   border: 'rgba(255,215,0,0.55)' },
+  Platino: { fg: '#B9F2FF', bg: 'rgba(185,242,255,0.16)', border: 'rgba(185,242,255,0.55)' },
+}
+
+function RangoBadge({ rango }) {
+  if (!rango?.Rango) return null
+  const c = RANGO_COLORS[rango.Rango] || RANGO_COLORS.Bronce
+  return (
+    <span
+      className="font-mono text-[10px] font-semibold uppercase tracking-wide px-2 py-[3px] rounded-md border"
+      style={{ color: c.fg, backgroundColor: c.bg, borderColor: c.border }}
+      title={`Rango ${rango.Rango} — ${rango.DiasAnticipacion} día${rango.DiasAnticipacion === 1 ? '' : 's'} de anticipación`}
+    >
+      {rango.Rango}
+    </span>
+  )
+}
 
 export default function Navbar() {
   const { user, logout } = useAuth()
@@ -14,7 +38,28 @@ export default function Navbar() {
   const location = useLocation()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [rango, setRango] = useState(null)
   const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    if (!user?.empleadoId) {
+      setRango(null)
+      return
+    }
+    let cancelled = false
+    getEmpleadoRango(user.empleadoId)
+      .then((res) => {
+        if (cancelled) return
+        setRango(res.data || null)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setRango(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user?.empleadoId])
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -82,6 +127,7 @@ export default function Navbar() {
                   className="flex items-center gap-3 cursor-pointer bg-transparent border-none"
                 >
                   <div className="flex items-center gap-3">
+                    <RangoBadge rango={rango} />
                     <div className="w-8 h-8 rounded-2xl bg-primary flex items-center justify-center">
                       <span className="font-mono text-[11px] text-white font-bold">
                         {user.initials}
@@ -177,6 +223,7 @@ export default function Navbar() {
             {user ? (
               <>
                 <div className="flex items-center gap-3 mb-4">
+                  <RangoBadge rango={rango} />
                   <div className="w-9 h-9 rounded-2xl bg-primary flex items-center justify-center">
                     <span className="font-mono text-[12px] text-white font-bold">
                       {user.initials}

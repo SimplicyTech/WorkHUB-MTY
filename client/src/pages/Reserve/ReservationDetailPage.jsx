@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { getReservacionById, cancelReservacion, checkOutReservacion } from '../../services/reservations'
+import { getReservacionById, cancelReservacion, checkInReservacion, checkOutReservacion } from '../../services/reservations'
 import Qrgenerator from '../../components/Confirmation/Qrgenerator'
 import { GRACE_MINUTES, classifyReservation } from '../../utils/reservationStatus'
 
@@ -45,6 +45,20 @@ function buildEndDate(fecha, horaFin) {
   return new Date(y, m - 1, d, h, min, 0)
 }
 
+// Parsea un DATETIME "YYYY-MM-DD HH:MM:SS" como hora local (sin TZ).
+function parseLocalDatetime(s) {
+  if (!s) return null
+  const str = String(s).replace('T', ' ').slice(0, 19)
+  const [datePart, timePart] = str.split(' ')
+  if (!datePart || !timePart) return null
+  const [y, m, d] = datePart.split('-').map(Number)
+  const [h, mi, se] = timePart.split(':').map(Number)
+  return new Date(y, m - 1, d, h, mi, se || 0)
+}
+
+const PRE_CHECKIN_MINUTES = 10
+const EARLY_CHECKIN_MINUTES = 5
+
 export default function ReservationDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -55,9 +69,20 @@ export default function ReservationDetailPage() {
 
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [checkingIn, setCheckingIn] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
 
   const [now, setNow] = useState(() => new Date())
+
+  const refetch = useCallback(() => {
+    return getReservacionById(id)
+      .then((res) => {
+        setReservation(res.data || null)
+      })
+      .catch((err) => {
+        setError(err?.error || 'Error al cargar la reservación')
+      })
+  }, [id])
 
   useEffect(() => {
     let cancelled = false
@@ -98,6 +123,24 @@ export default function ReservationDetailPage() {
     [startDate]
   )
 
+  const preCheckInAt = useMemo(
+    () => (startDate ? new Date(startDate.getTime() - PRE_CHECKIN_MINUTES * 60_000) : null),
+    [startDate]
+  )
+  const earlyCheckInAt = useMemo(
+    () => (startDate ? new Date(startDate.getTime() - EARLY_CHECKIN_MINUTES * 60_000) : null),
+    [startDate]
+  )
+
+  const checkInAt = useMemo(
+    () => parseLocalDatetime(reservation?.CheckInHoraEntrada),
+    [reservation?.CheckInHoraEntrada]
+  )
+  const checkOutAt = useMemo(
+    () => parseLocalDatetime(reservation?.CheckInHoraSalida),
+    [reservation?.CheckInHoraSalida]
+  )
+
   // El estatus del backend manda. Solo mostramos el contador de gracia
   // si la BD dice 'En periodo de gracia' (y aún queda tiempo en el reloj
   // local, para que el countdown no muestre negativos si el reloj se desfasó).
@@ -108,11 +151,51 @@ export default function ReservationDetailPage() {
     now < graceEndsAt
   )
 
+  const isProxima = estatusNombreLower === 'próxima' || estatusNombreLower === 'proxima'
+  const isActiva = estatusNombreLower === 'activa'
+  const isCompleted = estatusNombreLower === 'completada'
+
+  // Punto de corte de la sesión activa: si hubo check-out manual, esa hora;
+  // si no, la hora de fin de la reservación. Mientras siga 'Activa' y no haya
+  // llegado el fin, sigue corriendo en vivo.
+  const sessionEndAt = useMemo(() => {
+    if (checkOutAt) return checkOutAt
+    if (isCompleted && endDate) return endDate
+    return null
+  }, [checkOutAt, isCompleted, endDate])
+
+  // Pre-check-in: 10 min antes de la hora de inicio aparece la caja de aviso;
+  // los últimos 5 min, además se habilita el botón de check-in.
+  const inPreCheckInWindow = !!(
+    isProxima && preCheckInAt && earlyCheckInAt &&
+    now >= preCheckInAt && now < earlyCheckInAt
+  )
+  const inEarlyCheckInWindow = !!(
+    isProxima && earlyCheckInAt && startDate &&
+    now >= earlyCheckInAt && now < startDate
+  )
+
+  // El contador en vivo de sesión activa corre solo hasta llegar a la hora fin.
+  const activeSessionRunning = !!(isActiva && checkInAt && endDate && now < endDate)
+  const needsTick = inGracePeriod || inPreCheckInWindow || inEarlyCheckInWindow || activeSessionRunning
+
   useEffect(() => {
-    if (!inGracePeriod) return
+    if (!needsTick) return
     const t = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(t)
-  }, [inGracePeriod])
+  }, [needsTick])
+
+  // Cuando la sesión activa alcanza la hora de fin, refrescamos una vez para
+  // que el backend marque la reserva como 'Completada' y el contador quede
+  // congelado en el tiempo total transcurrido.
+  const refetchedOnEnd = useRef(false)
+  useEffect(() => {
+    if (!isActiva || !endDate) return
+    if (now < endDate) return
+    if (refetchedOnEnd.current) return
+    refetchedOnEnd.current = true
+    refetch()
+  }, [isActiva, endDate, now, refetch])
 
   const handleCancel = async () => {
     setCancelling(true)
@@ -126,13 +209,36 @@ export default function ReservationDetailPage() {
     }
   }
 
+  const handleCheckIn = async () => {
+    setCheckingIn(true)
+    try {
+      const res = await checkInReservacion(reservation.ReservacionID)
+      const newEstatusId = res?.data?.EstatusID
+      const horaEntrada = res?.data?.HoraEntrada
+        || new Date().toISOString().slice(0, 19).replace('T', ' ')
+      setReservation((prev) => prev ? {
+        ...prev,
+        EstatusNombre: 'Activa',
+        EstatusID: newEstatusId ?? prev.EstatusID,
+        CheckInHoraEntrada: prev.CheckInHoraEntrada || horaEntrada,
+      } : prev)
+    } catch (err) {
+      alert(err?.error || 'Error al hacer check-in')
+    } finally {
+      setCheckingIn(false)
+    }
+  }
+
   const handleCheckOut = async () => {
     setCheckingOut(true)
     try {
       await checkOutReservacion(reservation.ReservacionID)
-      navigate('/mis-reservaciones', { replace: true })
+      // Refrescamos para mostrar el cronómetro congelado en el momento del
+      // check-out (en vez de salir de la pantalla).
+      await refetch()
     } catch (err) {
       alert(err?.error || 'Error al hacer check-out')
+    } finally {
       setCheckingOut(false)
     }
   }
@@ -142,6 +248,9 @@ export default function ReservationDetailPage() {
   //   - Check-out: solo si la reservación está 'Activa' (hubo check-in)
   const estatusActual = (reservation?.EstatusNombre || '').toLowerCase().trim()
   const canCancel = estatusActual === 'próxima' || estatusActual === 'proxima'
+  // El botón de check-in se muestra durante los últimos 5 min antes de la
+  // hora de inicio (estatus 'Próxima') y durante el periodo de gracia.
+  const canCheckIn = inEarlyCheckInWindow || estatusActual === 'en periodo de gracia'
   const canCheckOut = estatusActual === 'activa'
 
   if (loading) {
@@ -186,6 +295,34 @@ export default function ReservationDetailPage() {
   const remainingMinutes = Math.max(0, Math.floor(remainingMs / 60_000))
   const remainingSeconds = Math.max(0, Math.floor((remainingMs % 60_000) / 1000))
 
+  // Pre-check-in countdown: tiempo restante hasta que se habilite el botón
+  // (es decir, hasta que falten 5 min para el inicio).
+  const preCheckInMs = inPreCheckInWindow && earlyCheckInAt ? earlyCheckInAt - now : 0
+  const preCheckInMinutes = Math.max(0, Math.floor(preCheckInMs / 60_000))
+  const preCheckInSeconds = Math.max(0, Math.floor((preCheckInMs % 60_000) / 1000))
+
+  // Early check-in countdown: tiempo restante hasta la hora de inicio
+  // (cuenta los últimos 5 minutos antes del periodo de gracia).
+  const earlyMs = inEarlyCheckInWindow && startDate ? startDate - now : 0
+  const earlyMinutes = Math.max(0, Math.floor(earlyMs / 60_000))
+  const earlySeconds = Math.max(0, Math.floor((earlyMs % 60_000) / 1000))
+
+  // Elapsed time desde el check-in.
+  //   - Si la reserva está Activa y aún no termina: corre en vivo, capado al endDate.
+  //   - Si ya fue Completada (manual o automáticamente): se congela en
+  //     checkOutAt (si lo hay) o en endDate.
+  const sessionShown = !!checkInAt && (isActiva || isCompleted)
+  const elapsedEndPoint = !sessionShown
+    ? null
+    : (sessionEndAt ? sessionEndAt : (endDate && now > endDate ? endDate : now))
+  const elapsedMs = sessionShown && checkInAt && elapsedEndPoint
+    ? Math.max(0, elapsedEndPoint - checkInAt)
+    : 0
+  const elapsedHours = Math.floor(elapsedMs / 3_600_000)
+  const elapsedMinutes = Math.floor((elapsedMs % 3_600_000) / 60_000)
+  const elapsedSeconds = Math.floor((elapsedMs % 60_000) / 1000)
+  const sessionFrozen = sessionShown && (isCompleted || !!checkOutAt || (endDate && now >= endDate))
+
   return (
     <div className="min-h-[calc(100dvh-64px)] bg-black px-6 py-8 lg:px-12">
       <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
@@ -207,6 +344,118 @@ export default function ReservationDetailPage() {
         <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
           {/* Left column */}
           <div className="flex flex-col gap-5">
+            {/* Pre-check-in: 10 → 5 min antes del inicio. Cuenta regresiva sin botón. */}
+            {inPreCheckInWindow && (
+              <section
+                className="flex flex-col gap-3 rounded-xl border border-[#05f0a5] p-5"
+                style={{ backgroundColor: 'rgba(5,240,165,0.12)' }}
+              >
+                <p className="font-mono text-[11px] font-semibold text-[#05f0a5]">
+                  Check-in disponible pronto — Podrás registrarte cuando falten 5 minutos
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <div
+                    className="flex h-14 w-14 flex-col items-center justify-center rounded-lg"
+                    style={{ backgroundColor: 'rgba(5,240,165,0.20)' }}
+                  >
+                    <span className="font-heading text-2xl font-bold leading-none text-white">
+                      {String(preCheckInMinutes).padStart(2, '0')}
+                    </span>
+                    <span className="font-mono text-[8px] text-[#05f0a5]">min</span>
+                  </div>
+                  <span className="font-heading text-2xl font-bold text-[#05f0a5]">:</span>
+                  <div
+                    className="flex h-14 w-14 flex-col items-center justify-center rounded-lg"
+                    style={{ backgroundColor: 'rgba(5,240,165,0.20)' }}
+                  >
+                    <span className="font-heading text-2xl font-bold leading-none text-white">
+                      {String(preCheckInSeconds).padStart(2, '0')}
+                    </span>
+                    <span className="font-mono text-[8px] text-[#05f0a5]">seg</span>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Últimos 5 min antes del inicio: check-in ya disponible. */}
+            {inEarlyCheckInWindow && (
+              <section
+                className="flex flex-col gap-3 rounded-xl border border-[#05f0a5] p-5"
+                style={{ backgroundColor: 'rgba(5,240,165,0.20)' }}
+              >
+                <p className="font-mono text-[11px] font-semibold text-[#05f0a5]">
+                  Check-in disponible — Tu reservación inicia en breve
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <div
+                    className="flex h-14 w-14 flex-col items-center justify-center rounded-lg"
+                    style={{ backgroundColor: 'rgba(5,240,165,0.33)' }}
+                  >
+                    <span className="font-heading text-2xl font-bold leading-none text-white">
+                      {String(earlyMinutes).padStart(2, '0')}
+                    </span>
+                    <span className="font-mono text-[8px] text-[#05f0a5]">min</span>
+                  </div>
+                  <span className="font-heading text-2xl font-bold text-[#05f0a5]">:</span>
+                  <div
+                    className="flex h-14 w-14 flex-col items-center justify-center rounded-lg"
+                    style={{ backgroundColor: 'rgba(5,240,165,0.33)' }}
+                  >
+                    <span className="font-heading text-2xl font-bold leading-none text-white">
+                      {String(earlySeconds).padStart(2, '0')}
+                    </span>
+                    <span className="font-mono text-[8px] text-[#05f0a5]">seg</span>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Sesión: corre en vivo mientras la reserva está Activa y no termina;
+                se congela cuando hay check-out o cuando se alcanza la hora fin. */}
+            {sessionShown && (
+              <section
+                className="flex flex-col gap-3 rounded-xl border border-[#05f0a5] p-5"
+                style={{ backgroundColor: sessionFrozen ? 'rgba(5,240,165,0.10)' : 'rgba(5,240,165,0.20)' }}
+              >
+                <p className="font-mono text-[11px] font-semibold text-[#05f0a5]">
+                  {sessionFrozen
+                    ? '✓ Sesión finalizada — Tiempo total que estuviste activo'
+                    : '✓ Check-in realizado — Sesión activa'}
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <div
+                    className="flex h-14 w-14 flex-col items-center justify-center rounded-lg"
+                    style={{ backgroundColor: 'rgba(5,240,165,0.33)' }}
+                  >
+                    <span className="font-heading text-2xl font-bold leading-none text-white">
+                      {String(elapsedHours).padStart(2, '0')}
+                    </span>
+                    <span className="font-mono text-[8px] text-[#05f0a5]">hr</span>
+                  </div>
+                  <span className="font-heading text-2xl font-bold text-[#05f0a5]">:</span>
+                  <div
+                    className="flex h-14 w-14 flex-col items-center justify-center rounded-lg"
+                    style={{ backgroundColor: 'rgba(5,240,165,0.33)' }}
+                  >
+                    <span className="font-heading text-2xl font-bold leading-none text-white">
+                      {String(elapsedMinutes).padStart(2, '0')}
+                    </span>
+                    <span className="font-mono text-[8px] text-[#05f0a5]">min</span>
+                  </div>
+                  <span className="font-heading text-2xl font-bold text-[#05f0a5]">:</span>
+                  <div
+                    className="flex h-14 w-14 flex-col items-center justify-center rounded-lg"
+                    style={{ backgroundColor: 'rgba(5,240,165,0.33)' }}
+                  >
+                    <span className="font-heading text-2xl font-bold leading-none text-white">
+                      {String(elapsedSeconds).padStart(2, '0')}
+                    </span>
+                    <span className="font-mono text-[8px] text-[#05f0a5]">seg</span>
+                  </div>
+                </div>
+              </section>
+            )}
+
             {/* Grace period alert */}
             {inGracePeriod && (
               <section
@@ -262,13 +511,24 @@ export default function ReservationDetailPage() {
                   Cancelar
                 </button>
               )}
+              {canCheckIn && (
+                <button
+                  type="button"
+                  onClick={handleCheckIn}
+                  disabled={checkingIn}
+                  className="flex h-14 cursor-pointer items-center justify-center rounded-lg border border-[#05f0a5] px-8 font-heading text-base font-semibold uppercase text-[#05f0a5] transition-colors hover:bg-[rgba(5,240,165,0.32)] disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{ backgroundColor: 'rgba(5,240,165,0.20)' }}
+                >
+                  {checkingIn ? 'Registrando...' : 'Hacer Check-in'}
+                </button>
+              )}
               {canCheckOut && (
                 <button
                   type="button"
                   onClick={handleCheckOut}
                   disabled={checkingOut}
-                  className="flex h-14 cursor-pointer items-center justify-center rounded-lg border-none px-8 font-heading text-base font-semibold uppercase text-[#05f0a5] transition-colors hover:bg-[rgba(5,240,165,0.32)] disabled:cursor-not-allowed disabled:opacity-60"
-                  style={{ backgroundColor: 'rgba(5,240,165,0.20)' }}
+                  className="flex h-14 cursor-pointer items-center justify-center rounded-lg border border-[#ff3246] px-8 font-heading text-base font-semibold uppercase text-[#ff3246] transition-colors hover:bg-[rgba(255,50,70,0.32)] disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{ backgroundColor: 'rgba(255,50,70,0.20)' }}
                 >
                   {checkingOut ? 'Cerrando...' : 'Check-out'}
                 </button>
