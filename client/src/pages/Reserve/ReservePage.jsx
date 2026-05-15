@@ -18,6 +18,19 @@ function mapEspaciosToDesks(espacios) {
     }))
 }
 
+// Salas reservables del piso (Tipo='Sala' en BD).
+// El FloorMap las localiza por el código incrustado en el Nombre
+// (ej. "Sierra Madre ICSJ-3040" contiene "ICSJ-3040").
+function mapEspaciosToSalas(espacios) {
+  return espacios
+    .filter((e) => (e.Tipo || '').toLowerCase() === 'sala')
+    .map((e) => ({
+      id: e.Nombre,
+      espacioID: e.EspacioID,
+      status: e.status,
+    }))
+}
+
 function getCluster(nombre) {
   const num = parseInt(nombre.replace(/\D/g, ''), 10)
   if (num >= 3001 && num <= 3005) return 'isa'
@@ -33,6 +46,7 @@ export default function ReservePage() {
   const navigate = useNavigate()
   const [selectedDesk, setSelectedDesk] = useState(null)
   const [deskData, setDeskData] = useState([])
+  const [salasData, setSalasData] = useState([])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -48,10 +62,13 @@ export default function ReservePage() {
       const res = await getEspaciosDisponibilidad(
         filters.date,
         filters.entryTime,
-        filters.exitTime
+        filters.exitTime,
+        filters.floor
       )
       const desks = mapEspaciosToDesks(res.data || [])
+      const salas = mapEspaciosToSalas(res.data || [])
       setDeskData(desks)
+      setSalasData(salas)
       setStats(res.stats || null)
     } catch (err) {
       console.error('Error fetching availability:', err)
@@ -78,14 +95,15 @@ export default function ReservePage() {
   const handleReserve = (formData) => {
     if (!selectedDesk) return
 
-    // Find the selected desk's backend EspacioID
-    const desk = deskData.find((d) => d.id === selectedDesk)
+    // El elemento seleccionado puede ser un escritorio (IC3xxx) o una sala.
+    const item =
+      deskData.find((d) => d.id === selectedDesk) ||
+      salasData.find((s) => s.id === selectedDesk)
 
-    // Navigate to parking page, passing all real data
     navigate('/estacionamiento', {
       state: {
         deskId: selectedDesk,
-        espacioID: desk?.espacioID,
+        espacioID: item?.espacioID,
         date: formData.date,
         entryTime: formData.entryTime,
         exitTime: formData.exitTime,
@@ -118,6 +136,7 @@ export default function ReservePage() {
       ) : (
         <FloorMap
           desks={deskData}
+          salas={salasData}
           rooms={fallbackRooms}
           selectedDesk={selectedDesk}
           onSelectDesk={handleSelectDesk}

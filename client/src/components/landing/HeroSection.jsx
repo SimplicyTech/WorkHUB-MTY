@@ -36,12 +36,14 @@ export default function HeroSection() {
           >
             RESERVAR MI LUGAR →
           </Link>
-          <Link
-            to="/admin"
-            className="border border-white/20 text-white font-heading text-sm font-semibold px-6 py-3 rounded-lg hover:bg-white/10 transition-colors text-center"
-          >
-            ADMIN PANEL
-          </Link>
+          {user?.rolId === 2 && (
+            <Link
+              to="/admin"
+              className="border border-white/20 text-white font-heading text-sm font-semibold px-6 py-3 rounded-lg hover:bg-white/10 transition-colors text-center"
+            >
+              ADMIN PANEL
+            </Link>
+          )}
         </div>
       </div>
 

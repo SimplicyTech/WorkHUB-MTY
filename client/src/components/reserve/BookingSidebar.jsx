@@ -1,4 +1,9 @@
 import { useState, useEffect } from 'react'
+import { getPisos } from '../../services/reservations'
+
+// PisoID que actualmente tiene mapa interactivo implementado.
+// El resto de los pisos se listan pero quedan deshabilitados.
+const PISO_CON_MAPA_ID = 2
 
 function getTodayString() {
   const d = new Date()
@@ -24,6 +29,15 @@ function isExitAfterEntry(entryTime, exitTime) {
   return getTimeMinutes(exitTime) > getTimeMinutes(entryTime)
 }
 
+function isToday(dateStr) {
+  return dateStr === getTodayString()
+}
+
+function getNowMinutes() {
+  const now = new Date()
+  return now.getHours() * 60 + now.getMinutes()
+}
+
 export default function BookingSidebar({
   selectedDesk,
   onReserve,
@@ -35,7 +49,23 @@ export default function BookingSidebar({
   const [date, setDate] = useState(getTodayString)
   const [entryTime, setEntryTime] = useState(defaultTimes.entry)
   const [exitTime, setExitTime] = useState(defaultTimes.exit)
-  const [floor, setFloor] = useState('piso-3')
+  const [floor, setFloor] = useState(String(PISO_CON_MAPA_ID))
+  const [pisos, setPisos] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+    getPisos()
+      .then((res) => {
+        if (cancelled) return
+        setPisos(res.data || [])
+      })
+      .catch((err) => {
+        console.error('Error al cargar pisos:', err)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
   const [reserveFor, setReserveFor] = useState('me')
   const [timeError, setTimeError] = useState('')
 
@@ -44,10 +74,17 @@ export default function BookingSidebar({
     onFiltersChange?.({ date, entryTime, exitTime, floor, reserveFor })
   }, [date, entryTime, exitTime, floor, reserveFor])
 
-  const validateTimes = (entry, exit) => {
-    const valid = isExitAfterEntry(entry, exit)
-    setTimeError(valid ? '' : 'La hora de salida debe ser después de la hora de llegada.')
-    return valid
+  const validateTimes = (entry, exit, selectedDate = date) => {
+    if (!isExitAfterEntry(entry, exit)) {
+      setTimeError('La hora de salida debe ser después de la hora de llegada.')
+      return false
+    }
+    if (isToday(selectedDate) && getTimeMinutes(entry) < getNowMinutes()) {
+      setTimeError('No puedes reservar en una hora que ya pasó.')
+      return false
+    }
+    setTimeError('')
+    return true
   }
 
   const handleReserve = () => {
@@ -60,20 +97,22 @@ export default function BookingSidebar({
 
   const handleEntryTimeChange = (value) => {
     setEntryTime(value)
-    if (timeError) {
-      validateTimes(value, exitTime)
-    }
+    validateTimes(value, exitTime)
   }
 
   const handleExitTimeChange = (value) => {
     setExitTime(value)
-    if (timeError) {
-      validateTimes(entryTime, value)
-    }
+    validateTimes(entryTime, value)
+  }
+
+  const handleDateChange = (value) => {
+    setDate(value)
+    validateTimes(entryTime, exitTime, value)
   }
 
   const displayStats = stats || { available: 0, occupied: 0, total: 0 }
-  const isValidTimeRange = isExitAfterEntry(entryTime, exitTime)
+  const isPastEntryToday = isToday(date) && getTimeMinutes(entryTime) < getNowMinutes()
+  const isValidTimeRange = isExitAfterEntry(entryTime, exitTime) && !isPastEntryToday
 
   return (
     <div className="w-full lg:w-[360px] lg:shrink-0 bg-surface flex flex-col lg:h-full">
@@ -127,7 +166,7 @@ export default function BookingSidebar({
             <input
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => handleDateChange(e.target.value)}
               min={getTodayString()}
               className="w-full h-11 px-3 pr-8 rounded-lg bg-surface-badge font-mono text-[13px] text-white border-none outline-none cursor-pointer [color-scheme:dark]"
             />
@@ -144,6 +183,7 @@ export default function BookingSidebar({
               <input
                 type="time"
                 value={entryTime}
+                min={isToday(date) ? `${String(Math.floor(getNowMinutes() / 60)).padStart(2, '0')}:${String(getNowMinutes() % 60).padStart(2, '0')}` : undefined}
                 onChange={(e) => handleEntryTimeChange(e.target.value)}
                 className="w-full h-11 px-3 pr-8 rounded-lg bg-surface-badge font-mono text-[13px] text-white border-none outline-none cursor-pointer [color-scheme:dark]"
               />
@@ -181,9 +221,18 @@ export default function BookingSidebar({
               onChange={(e) => setFloor(e.target.value)}
               className="w-full h-11 px-3 pr-8 rounded-lg bg-surface-badge font-mono text-[13px] text-white border-none outline-none cursor-pointer appearance-none [color-scheme:dark]"
             >
-              <option value="piso-1">Piso 1 — Recepción</option>
-              <option value="piso-2">Piso 2 — Área Ejecutiva</option>
-              <option value="piso-3">Piso 3 — Área de Trabajo General</option>
+              {pisos.length === 0 ? (
+                <option value="">Cargando pisos...</option>
+              ) : (
+                pisos.map((p) => {
+                  const hasMap = p.PisoID === PISO_CON_MAPA_ID
+                  return (
+                    <option key={p.PisoID} value={String(p.PisoID)} disabled={!hasMap}>
+                      {p.Nombre}{hasMap ? '' : ' — Próximamente'}
+                    </option>
+                  )
+                })
+              )}
             </select>
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none">▾</span>
           </div>
@@ -194,7 +243,7 @@ export default function BookingSidebar({
         {/* Disponibilidad */}
         <div className="flex flex-col gap-3">
           <span className="font-mono text-[10px] text-text-muted font-semibold uppercase tracking-wide">
-            Disponibilidad piso 3
+            Disponibilidad {pisos.find((p) => String(p.PisoID) === floor)?.Nombre || ''}
           </span>
           <div className="flex gap-1.5">
             <div className="flex-1 flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg bg-surface-badge">
@@ -218,19 +267,6 @@ export default function BookingSidebar({
           </div>
         </div>
 
-        {/* AI Suggestion */}
-        <div className="flex flex-col gap-1.5 p-2.5 rounded-lg border border-accent bg-accent/10">
-          <span className="font-mono text-[10px] text-accent font-semibold uppercase tracking-wide">
-            Sugerencia IA
-          </span>
-          <p className="font-mono text-[8px] text-white leading-[1.4]">
-            Basado en tu historial, IC3015 tiene 92% de disponibilidad a esta hora
-            y coincide con tu zona preferida.
-          </p>
-          <button className="h-[26px] rounded-md bg-accent font-mono text-[10px] text-surface font-semibold cursor-pointer border-none hover:bg-accent/80 transition-colors">
-            Seleccionar IC3015
-          </button>
-        </div>
       </div>
 
       {/* Bottom */}
