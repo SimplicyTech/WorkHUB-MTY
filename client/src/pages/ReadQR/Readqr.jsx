@@ -90,7 +90,7 @@ export default function ReadQRPage() {
 
       {/* Header */}
       <div className="px-5 pt-7 pb-5">
-        <p className="font-mono text-[10px] text-primary/60 mb-1">// lector_qr</p>
+        <p className="font-mono text-[10px] text-primary/60 mb-1">// lector QR</p>
         <h1 className="font-heading text-3xl font-bold text-white">LEER QR</h1>
         <p className="font-mono text-[11px] text-white/40 mt-1">
           Apunta al código QR de la reservación
@@ -135,8 +135,8 @@ export default function ReadQRPage() {
               <p className="font-mono text-[10px] text-white/40">Datos de la reservación</p>
             </div>
             <div className="px-5 py-5 flex flex-col gap-4">
-              <Field label="empleado_id"    value={payload.userId} />
-              <Field label="reservacion_id" value={payload.reservacionId} />
+              <Field label="Empleado ID" value={payload.userId} />
+              <Field label="Reservación ID" value={payload.reservacionId} />
             </div>
           </div>
         )}
