@@ -7,6 +7,18 @@ export function getAllEmpleados() {
   return apiRequest('/empleados')
 }
 
+export function getEmpleadoRango(empleadoId) {
+  return apiRequest(`/empleados/${empleadoId}/rango`)
+}
+
+export function getEmpleadoTransacciones(empleadoId) {
+  return apiRequest(`/empleados/${empleadoId}/transacciones`)
+}
+
+export function getEmpleadoDisponibilidadFecha(empleadoId, fecha) {
+  return apiRequest(`/empleados/${empleadoId}/disponibilidad-fecha?fecha=${fecha}`)
+}
+
 export function createEmpleado({ Nombre, Correo, Contrasena, RolID, NivelID }) {
   return apiRequest('/empleados', {
     method: 'POST',
@@ -77,6 +89,15 @@ export function createReservacion({
 export function cancelReservacion(reservacionId) {
   return apiRequest(`/reservaciones/${reservacionId}`, {
     method: 'DELETE',
+  }).then((response) => {
+    notifyDashboardChanged()
+    return response
+  })
+}
+
+export function checkInReservacion(reservacionId) {
+  return apiRequest(`/reservaciones/${reservacionId}/checkin`, {
+    method: 'POST',
   }).then((response) => {
     notifyDashboardChanged()
     return response
