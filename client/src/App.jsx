@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { DashboardProvider } from './context/DashboardContext'
+import { LecturaProvider } from './context/LecturaContext'
+
 import MainLayout from './layouts/MainLayout'
 import AppLayout from './layouts/AppLayout'
 import LandingPage from './pages/Landing/LandingPage'
@@ -17,6 +19,7 @@ function App() {
   return (
     <AuthProvider>
       <DashboardProvider>
+        <LecturaProvider>
       <BrowserRouter>
         <Routes>
           <Route element={<MainLayout />}>
@@ -34,6 +37,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
         </Routes>
       </BrowserRouter>
+      </LecturaProvider>
       </DashboardProvider>
     </AuthProvider>
   )
