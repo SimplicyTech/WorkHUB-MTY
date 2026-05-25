@@ -37,8 +37,8 @@ export default function StatsPanel() {
   const bars = data
     .filter(r => r.Piso !== 'TOTAL')
     .map(r => ({
-      label: `piso_${r.Piso}`,
-      width: `${Math.round((r.ocupados / r.total) * 100)}%`,
+      label: r.PisoNombre || `Piso ${r.Piso}`,
+      width: `${r.total > 0 ? Math.round((r.ocupados / r.total) * 100) : 0}%`,
       color: 'bg-red-500'
     }))
   return (
@@ -81,7 +81,7 @@ export default function StatsPanel() {
 
         {bars.map((bar) => (
           <div key={bar.label} className="flex items-center gap-2">
-            <span className="font-mono text-[9px] text-text-muted w-10">
+            <span className="font-mono text-[9px] text-text-muted w-20 truncate">
               {bar.label}
             </span>
             <div className="flex-1 bg-bar-bg rounded h-2">

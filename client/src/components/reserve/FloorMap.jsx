@@ -63,6 +63,59 @@ function Room({ name, code, style, restricted = false }) {
   )
 }
 
+// Sala reservable: misma forma que Room pero clickeable, con estados
+// available / occupied / selected igual que un DeskCell.
+function SelectableRoom({ sala, name, code, style, selectedDesk, onSelect }) {
+  // Si no hay sala (backend aún no responde o no existe en BD) se renderiza
+  // como Room estático para no romper el mapa.
+  if (!sala) {
+    return <Room name={name} code={code} style={style} />
+  }
+  const isSelected = sala.id === selectedDesk
+  const status = isSelected ? 'selected' : sala.status
+
+  const palette = {
+    available: { bg: '#05f0a533', border: '#05f0a5', label: '#05f0a5', cursor: 'pointer' },
+    occupied:  { bg: '#ff324633', border: '#ff3246', label: '#ff3246', cursor: 'not-allowed' },
+    selected:  { bg: '#a100ff55', border: '#ffffff', label: '#ffffff', cursor: 'pointer' },
+  }
+  const c = palette[status] || palette.available
+
+  const handleClick = () => {
+    if (status === 'occupied') return
+    onSelect(sala.id)
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      title={`${name} — ${status}`}
+      className="absolute flex flex-col items-center justify-center rounded-md transition-all"
+      style={{
+        backgroundColor: c.bg,
+        border: `1px solid ${c.border}`,
+        cursor: c.cursor,
+        outline: 'none',
+        padding: 0,
+        ...style,
+      }}
+    >
+      <span
+        className="font-mono font-semibold text-center leading-tight"
+        style={{ fontSize: 10, color: c.label }}
+      >
+        {name}
+      </span>
+      {code && (
+        <span className="font-mono text-center" style={{ fontSize: 6, color: c.label, opacity: 0.7 }}>
+          {code}
+        </span>
+      )}
+    </button>
+  )
+}
+
 function ISAArea({ desks, selectedDesk, onSelect }) {
   const row1 = desks.slice(0, 3)
   const row2 = desks.slice(3)
@@ -108,10 +161,13 @@ function ISAArea({ desks, selectedDesk, onSelect }) {
 
 /* ── Main component ────────────────────────── */
 
-export default function FloorMap({ desks, rooms, selectedDesk, onSelectDesk, loading }) {
+export default function FloorMap({ desks, salas = [], rooms, selectedDesk, onSelectDesk, loading }) {
   const byCluster = (c) => desks.filter((d) => d.cluster === c)
 
   const findRoom = (id) => rooms.find((r) => r.id === id)
+  // Localiza una sala del backend por el código embebido en su Nombre
+  // (ej. "Sierra Madre ICSJ-3040" matchea "ICSJ-3040").
+  const findSala = (code) => salas.find((s) => s.id.includes(code))
 
   return (
     <div className="flex-1 flex flex-col min-h-[620px] lg:h-full min-w-0">
@@ -233,9 +289,12 @@ export default function FloorMap({ desks, rooms, selectedDesk, onSelectDesk, loa
           />
 
           {/* Sierra Madre */}
-          <Room
+          <SelectableRoom
+            sala={findSala('ICSJ-3040')}
             name="SIERRA MADRE"
             code={findRoom('sierra-madre')?.code}
+            selectedDesk={selectedDesk}
+            onSelect={onSelectDesk}
             style={{ left: 335, top: 350, width: 200, height: 80 }}
           />
 
@@ -262,16 +321,22 @@ export default function FloorMap({ desks, rooms, selectedDesk, onSelectDesk, loa
           />
 
           {/* Touch Point */}
-          <Room
+          <SelectableRoom
+            sala={findSala('ICTP-3042')}
             name="TOUCH POINT"
             code={findRoom('touch-point')?.code}
+            selectedDesk={selectedDesk}
+            onSelect={onSelectDesk}
             style={{ left: 370, top: 524, width: 150, height: 60 }}
           />
 
           {/* La Silla */}
-          <Room
+          <SelectableRoom
+            sala={findSala('ICSJ-3041')}
             name="LA SILLA"
             code="ICSJ-3041 · Sala Junta Grande"
+            selectedDesk={selectedDesk}
+            onSelect={onSelectDesk}
             style={{ left: 230, top: 632, width: 380, height: 110 }}
           />
         </div>
@@ -282,7 +347,7 @@ export default function FloorMap({ desks, rooms, selectedDesk, onSelectDesk, loa
         <div className="flex min-w-0 items-center gap-2">
           <span className={`w-2 h-2 rounded ${loading ? 'bg-yellow-400 animate-pulse' : 'bg-accent'}`} />
           <span className="font-mono text-[9px] text-text-muted">
-            {loading ? 'Actualizando disponibilidad...' : 'Datos en tiempo real — conectado al servidor'}
+            {loading ? 'Actualizando disponibilidad...' : 'Datos en tiempo real'}
           </span>
         </div>
         <span className="font-mono text-[9px] text-primary font-bold">

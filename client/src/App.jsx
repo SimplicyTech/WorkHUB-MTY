@@ -8,11 +8,13 @@ import AppLayout from './layouts/AppLayout'
 import LandingPage from './pages/Landing/LandingPage'
 import LoginPage from './pages/Login/LoginPage'
 import AdminDashboardPage from './pages/Admin/AdminDashboardPage'
+import RequireAdmin from './components/auth/RequireAdmin'
 import ReservePage from './pages/Reserve/ReservePage'
 import ParkingPage from './pages/Reserve/ParkingPage'
 import ConfirmationPage from './pages/Reserve/ConfirmationPage'
 import MyReservationsPage from './pages/Reserve/MyReservationsPage'
 import ReservationDetailPage from './pages/Reserve/ReservationDetailPage'
+import PuntosPage from './pages/Reserve/PuntosPage'
 import ReadQRPage from './pages/ReadQR/Readqr'
 
 function App() {
@@ -25,13 +27,21 @@ function App() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<LandingPage />} />
           </Route>
-          <Route path="/admin" element={<AdminDashboardPage />} />
+          <Route
+            path="/admin"
+            element={
+              <RequireAdmin>
+                <AdminDashboardPage />
+              </RequireAdmin>
+            }
+          />
           <Route element={<AppLayout />}>
             <Route path="/reservar" element={<ReservePage />} />
             <Route path="/estacionamiento" element={<ParkingPage />} />
             <Route path="/confirmacion" element={<ConfirmationPage />} />
             <Route path="/mis-reservaciones" element={<MyReservationsPage />} />
             <Route path="/mis-reservaciones/:id" element={<ReservationDetailPage />} />
+            <Route path="/puntos" element={<PuntosPage />} />
             <Route path="/ReadQR" element={<ReadQRPage />} />
           </Route>
           <Route path="/login" element={<LoginPage />} />

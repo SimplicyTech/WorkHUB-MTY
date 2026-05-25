@@ -196,15 +196,8 @@ export default function ReadQRPage() {
 
       {/* Header */}
       <div className="px-5 pt-7 pb-5">
-
-        <p className="font-mono text-[10px] text-primary/60 mb-1">
-          // lector_qr
-        </p>
-
-        <h1 className="font-heading text-3xl font-bold text-white">
-          LEER QR
-        </h1>
-
+        <p className="font-mono text-[10px] text-primary/60 mb-1">// lector QR</p>
+        <h1 className="font-heading text-3xl font-bold text-white">LEER QR</h1>
         <p className="font-mono text-[11px] text-white/40 mt-1">
           Apunta al código QR de la reservación
         </p>
@@ -287,30 +280,8 @@ export default function ReadQRPage() {
             </div>
 
             <div className="px-5 py-5 flex flex-col gap-4">
-
-              <Field
-                  label="Empleado_ID"
-                  value={payload?.EmpleadoID}
-                />
-
-                <Field
-                  label="Reservacion_ID"
-                  value={payload?.ReservacionID}
-                />
-
-              {success && (
-                <div
-                  className="rounded-xl px-4 py-3 border border-green-500/30"
-                  style={{
-                    background: 'rgba(34,197,94,0.07)'
-                  }}
-                >
-                  <p className="font-mono text-[11px] text-green-400 text-center">
-                    {success}
-                  </p>
-                </div>
-              )}
-
+              <Field label="Empleado ID" value={payload.userId} />
+              <Field label="Reservación ID" value={payload.reservacionId} />
             </div>
 
           </div>
@@ -332,12 +303,8 @@ export default function ReadQRPage() {
         {!hasResult ? (
           <button
             onClick={scanning ? reset : start}
-            className="w-full h-14 rounded-xl font-heading text-sm font-bold text-white tracking-wider transition-all active:scale-[0.98]"
-            style={{
-              background: scanning
-                ? 'rgba(255,255,255,0.06)'
-                : 'linear-gradient(135deg,#7C00FF,#460073)'
-            }}
+            className="w-full h-14 cursor-pointer rounded-xl border-none font-heading text-sm font-bold text-white tracking-wider transition-colors hover:opacity-90"
+            style={{ background: scanning ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg,#7C00FF,#460073)' }}
           >
             {scanning
               ? 'DETENER CÁMARA'
@@ -345,21 +312,16 @@ export default function ReadQRPage() {
           </button>
         ) : (
           <button
-            onClick={restartScanner}
-            className="w-full h-14 rounded-xl font-heading text-sm font-bold text-white tracking-wider border border-white/10 hover:border-primary/40 transition-all active:scale-[0.98]"
-            style={{
-              background: 'rgba(255,255,255,0.04)'
-            }}
+            onClick={reset}
+            className="w-full h-14 cursor-pointer rounded-xl font-heading text-sm font-bold text-white tracking-wider border border-white/10 transition-colors hover:border-primary/40"
+            style={{ background: 'rgba(255,255,255,0.04)' }}
           >
             ESCANEAR OTRO
           </button>
         )}
 
-        {/* Back */}
-        <button
-          onClick={() => navigate(-1)}
-          className="font-mono text-[11px] text-white/25 hover:text-white/50 transition-colors text-center"
-        >
+        <button onClick={() => navigate(-1)}
+          className="cursor-pointer border-none bg-transparent font-mono text-[11px] text-white/25 transition-colors hover:text-white/50 text-center">
           ← volver
         </button>
 
