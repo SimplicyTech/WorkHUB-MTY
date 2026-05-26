@@ -140,6 +140,9 @@ export default function ReadQRPage() {
     setPayload(result)
 
   } catch (err) {
+    console.log('SCAN ERROR FULL', err)
+    console.log(err?.response)
+    console.log(err?.response?.data)
 
    
   }
