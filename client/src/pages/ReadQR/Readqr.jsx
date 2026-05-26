@@ -280,8 +280,8 @@ export default function ReadQRPage() {
             </div>
 
             <div className="px-5 py-5 flex flex-col gap-4">
-              <Field label="Empleado ID" value={payload.userId} />
-              <Field label="Reservación ID" value={payload.reservacionId} />
+              <Field label="Empleado ID" value={payload.EmpleadoID} />
+              <Field label="Reservación ID" value={payload.ReservacionID} />
             </div>
 
           </div>
