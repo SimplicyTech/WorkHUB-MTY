@@ -1213,10 +1213,12 @@ export default function AdminDashboardPage() {
         </nav>
 
         <div className="admin-user">
-          <div className="admin-user__avatar">AM</div>
+          <div className="admin-user__avatar">{user?.initials || '??'}</div>
           <div>
-            <strong>Ana Martinez</strong>
-            <span>Administradora</span>
+            <strong>{user?.name || 'Usuario'}</strong>
+            <span>{
+              ({ 1: 'Empleado', 2: 'Admin Facilities', 3: 'Visitante', 4: 'Admin Sistema', 5: 'Guardia' })[user?.rolId] || 'Administrador'
+            }</span>
           </div>
         </div>
       </aside>
