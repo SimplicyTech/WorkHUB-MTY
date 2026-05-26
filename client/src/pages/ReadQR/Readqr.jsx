@@ -122,7 +122,6 @@ export default function ReadQRPage() {
 
   setScanning(false)
 
-  console.log('RAW QR', text)
 
   const result = parseQR(text)
 
@@ -133,11 +132,6 @@ export default function ReadQRPage() {
 
   try {
 
-    console.log('QR RESULT', result)
-
-    console.log('ReservacionID:', result.ReservacionID)
-    console.log('EmpleadoID:', result.EmpleadoID)
-
     await scanCodigo(
       result.ReservacionID,
       result.EmpleadoID
@@ -147,8 +141,7 @@ export default function ReadQRPage() {
 
   } catch (err) {
 
-    console.log('SCAN ERROR', err)
-
+   
   }
 },
 
