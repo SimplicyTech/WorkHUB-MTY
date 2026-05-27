@@ -29,8 +29,14 @@ export async function apiRequest(path, { method = 'GET', body, auth = true } = {
 
   if (!res.ok) {
     if (res.status === 401 || res.status === 403) clearToken()
-    throw data.error ? { ...data, status: res.status } : { error: 'Error en la solicitud', status: res.status }
-  }
+    throw {
+      ...data,
+      error:
+        data.error ||
+        data.message ||
+        'Error en la solicitud',
+      status: res.status
+    }  }
 
   return data
 }

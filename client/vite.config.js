@@ -13,8 +13,5 @@ export default defineConfig(({ command }) => ({
   server: {
     host: true,
     https: true,
-    hmr: {
-    host: '10.22.170.3'
-  },
   }
 }))

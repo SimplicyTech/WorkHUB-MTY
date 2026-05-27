@@ -122,7 +122,6 @@ export default function ReadQRPage() {
 
   setScanning(false)
 
-  console.log('RAW QR', text)
 
   const result = parseQR(text)
 
@@ -133,11 +132,6 @@ export default function ReadQRPage() {
 
   try {
 
-    console.log('QR RESULT', result)
-
-    console.log('ReservacionID:', result.ReservacionID)
-    console.log('EmpleadoID:', result.EmpleadoID)
-
     await scanCodigo(
       result.ReservacionID,
       result.EmpleadoID
@@ -146,9 +140,11 @@ export default function ReadQRPage() {
     setPayload(result)
 
   } catch (err) {
+    console.log('SCAN ERROR FULL', err)
+    console.log(err?.response)
+    console.log(err?.response?.data)
 
-    console.log('SCAN ERROR', err)
-
+   
   }
 },
 
@@ -280,8 +276,8 @@ export default function ReadQRPage() {
             </div>
 
             <div className="px-5 py-5 flex flex-col gap-4">
-              <Field label="Empleado ID" value={payload.userId} />
-              <Field label="Reservación ID" value={payload.reservacionId} />
+              <Field label="Empleado ID" value={payload.EmpleadoID} />
+              <Field label="Reservación ID" value={payload.ReservacionID} />
             </div>
 
           </div>
