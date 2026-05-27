@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useDashboard } from '../../context/useDashboard'
 import { useAuth } from '../../context/useAuth'
-import { getAllEmpleados, getAllReservaciones, createEmpleado } from '../../services/reservations'
+import { getAllEmpleados, getAllReservaciones, createEmpleado, getAllEspacios, createEspacio, updateEspacioEstado, getPisos } from '../../services/reservations'
 import './AdminDashboard.css'
 
 const sidebarItems = [
@@ -217,14 +217,7 @@ const espaciosList = [
   { id: 'D-504', tipo: 'Escritorio', piso: 'Piso 5', zona: 'Sala Conf.', estado: 'Activo' },
 ]
 
-const usuariosList = [
-  { id: 'U-1024', nombre: 'Ana Martinez', email: 'ana.martinez@accenture.com', rol: 'Admin', depto: 'Operaciones', estado: 'Activo' },
-  { id: 'U-1018', nombre: 'Gilberto R.', email: 'gilberto.r@accenture.com', rol: 'Usuario', depto: 'Tecnologia', estado: 'Activo' },
-  { id: 'U-1007', nombre: 'Maria L.', email: 'maria.l@accenture.com', rol: 'Usuario', depto: 'Finanzas', estado: 'Activo' },
-  { id: 'U-0998', nombre: 'Carlos P.', email: 'carlos.p@accenture.com', rol: 'Usuario', depto: 'Legal', estado: 'Bloqueado' },
-  { id: 'U-0975', nombre: 'Laura V.', email: 'laura.v@accenture.com', rol: 'Supervisor', depto: 'RRHH', estado: 'Activo' },
-  { id: 'U-0961', nombre: 'Pedro S.', email: 'pedro.s@accenture.com', rol: 'Usuario', depto: 'Marketing', estado: 'Inactivo' },
-]
+
 
 const reportZones = [
   { zona: 'Area General', piso: 'P3', pct: '91%', tone: 'hot' },
@@ -351,6 +344,88 @@ function ReportesView() {
 }
 
 function EspaciosView() {
+  const [espacios, setEspacios] = useState([])
+  const [pisos, setPisos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  
+  const [search, setSearch] = useState('')
+  const [filtroTipo, setFiltroTipo] = useState('todos')
+  const [filtroPiso, setFiltroPiso] = useState('todos')
+  const [filtroEstado, setFiltroEstado] = useState('todos')
+
+  // Modal
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState({ Nombre: '', Tipo: 'Escritorio', PisoID: '' })
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState(null)
+
+  const cargarDatos = async () => {
+    setLoading(true)
+    try {
+      const [resEspacios, resPisos] = await Promise.all([
+        getAllEspacios(),
+        getPisos()
+      ])
+      setEspacios(resEspacios.data || [])
+      setPisos(resPisos.data || [])
+      if (resPisos.data?.length > 0 && !form.PisoID) {
+        setForm(f => ({ ...f, PisoID: String(resPisos.data[0].PisoID) }))
+      }
+    } catch (err) {
+      setError('No se pudo cargar la información')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { cargarDatos() }, [])
+
+  const filtrados = espacios.filter(e => {
+    const nombre = (e.Nombre || '').toLowerCase()
+    const id = String(e.EspacioID).toLowerCase()
+    const matchSearch = nombre.includes(search.toLowerCase()) || id.includes(search.toLowerCase())
+    const matchTipo = filtroTipo === 'todos' || e.Tipo === filtroTipo
+    const matchPiso = filtroPiso === 'todos' || String(e.PisoID) === filtroPiso
+    const matchEstado = filtroEstado === 'todos' || (e.Estado || 'Activo') === filtroEstado
+    return matchSearch && matchTipo && matchPiso && matchEstado
+  })
+
+  const handleFormChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }))
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setFormError(null)
+    if (!form.Nombre || !form.Tipo || !form.PisoID) {
+      setFormError('Completa todos los campos')
+      return
+    }
+    setSaving(true)
+    try {
+      await createEspacio(form)
+      setShowModal(false)
+      setForm(f => ({ ...f, Nombre: '' }))
+      cargarDatos()
+    } catch (err) {
+      setFormError(err.response?.data?.error || 'Error al crear espacio')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const toggleEstado = async (espacio) => {
+    const estadoActual = espacio.Estado || 'Activo'
+    const nuevoEstado = estadoActual === 'Activo' ? 'Bloqueado' : 'Activo'
+    try {
+      await updateEspacioEstado(espacio.EspacioID, nuevoEstado)
+      setEspacios(espacios.map(e => e.EspacioID === espacio.EspacioID ? { ...e, Estado: nuevoEstado } : e))
+    } catch (err) {
+      alert('Error al actualizar estado')
+    }
+  }
+
+  const tiposUnicos = [...new Set(espacios.map(e => e.Tipo))].filter(Boolean)
+
   return (
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
@@ -359,7 +434,7 @@ function EspaciosView() {
           <h1>GESTION DE ESPACIOS</h1>
         </div>
         <div className="admin-main__actions">
-          <button type="button" className="admin-btn-export admin-btn-export--primary">
+          <button type="button" className="admin-btn-export admin-btn-export--primary" onClick={() => setShowModal(true)}>
             <AdminIcon name="plusBox" />
             Agregar Espacio
           </button>
@@ -369,69 +444,116 @@ function EspaciosView() {
       <section className="admin-management-tools">
         <label className="admin-search">
           <AdminIcon name="search" />
-          <input type="search" placeholder="Buscar por ID o nombre..." />
+          <input type="search" placeholder="Buscar por ID o nombre..." value={search} onChange={e => setSearch(e.target.value)} />
         </label>
-        <select className="admin-select" defaultValue="tipo">
-          <option value="tipo">Tipo: Todos</option>
+        <select className="admin-select" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
+          <option value="todos">Tipo: Todos</option>
+          {tiposUnicos.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
-        <select className="admin-select" defaultValue="piso">
-          <option value="piso">Piso: Todos</option>
+        <select className="admin-select" value={filtroPiso} onChange={e => setFiltroPiso(e.target.value)}>
+          <option value="todos">Piso: Todos</option>
+          {pisos.map(p => <option key={p.PisoID} value={String(p.PisoID)}>{p.Nombre}</option>)}
         </select>
-        <select className="admin-select" defaultValue="estado">
-          <option value="estado">Estado: Todos</option>
+        <select className="admin-select" value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
+          <option value="todos">Estado: Todos</option>
+          <option value="Activo">Activo</option>
+          <option value="Bloqueado">Bloqueado</option>
         </select>
       </section>
 
       <section className="admin-card admin-card--management-table">
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Tipo</th>
-                <th>Piso</th>
-                <th>Zona</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {espaciosList.map((e) => (
-                <tr key={e.id}>
-                  <td className="admin-table__id">{e.id}</td>
-                  <td>{e.tipo}</td>
-                  <td>{e.piso}</td>
-                  <td>{e.zona}</td>
-                  <td>
-                    <span className={`admin-badge ${
-                      e.estado === 'Activo' ? 'admin-badge--ok' :
-                      e.estado === 'Inactivo' ? 'admin-badge--rose' :
-                      'admin-badge--yellow'
-                    }`}>{e.estado}</span>
-                  </td>
-                  <td>
-                    <div className="admin-table-actions">
-                      <button type="button" className="admin-btn-ghost-sm">Editar</button>
-                      <button type="button" className={e.estado === 'Activo' ? 'admin-btn-danger-sm' : 'admin-btn-ghost-sm'}>
-                        {e.estado === 'Activo' ? 'Desactivar' : 'Activar'}
-                      </button>
-                    </div>
-                  </td>
+        {loading && <p className="admin-table-msg">Cargando espacios…</p>}
+        {error && <p className="admin-table-msg admin-table-msg--error">{error}</p>}
+        {!loading && !error && (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Tipo</th>
+                  <th>Piso</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="admin-pagination">
-          <span>Mostrando 1-6 de 296 espacios</span>
-          <div>
-            <button type="button" className="is-active">1</button>
-            <button type="button">2</button>
-            <button type="button">3</button>
-            <button type="button">→</button>
+              </thead>
+              <tbody>
+                {filtrados.map((e) => {
+                  const estadoActual = e.Estado || 'Activo';
+                  return (
+                    <tr key={e.EspacioID}>
+                      <td className="admin-table__id">E-{e.EspacioID}</td>
+                      <td>{e.Nombre}</td>
+                      <td>{e.Tipo}</td>
+                      <td>{e.PisoNombre || `Piso ${e.PisoID}`}</td>
+                      <td>
+                        <span className={`admin-badge ${
+                          estadoActual === 'Activo' ? 'admin-badge--ok' : 'admin-badge--rose'
+                        }`}>{estadoActual}</span>
+                      </td>
+                      <td>
+                        <div className="admin-table-actions">
+                          <button type="button" className="admin-btn-ghost-sm">Editar</button>
+                          <button type="button" className={estadoActual === 'Activo' ? 'admin-btn-danger-sm' : 'admin-btn-ghost-sm'} onClick={() => toggleEstado(e)}>
+                            {estadoActual === 'Activo' ? 'Bloquear' : 'Activar'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {filtrados.length === 0 && (
+                  <tr><td colSpan={6} className="admin-table-msg">Sin resultados</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {!loading && !error && (
+          <div className="admin-pagination">
+            <span>Mostrando {filtrados.length} de {espacios.length} espacios</span>
+          </div>
+        )}
+      </section>
+
+      {/* ── Modal Agregar Espacio ── */}
+      {showModal && (
+        <div className="admin-modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal__header">
+              <h2>Agregar Espacio</h2>
+              <button type="button" className="admin-modal__close" onClick={() => setShowModal(false)}>✕</button>
+            </div>
+            <form className="admin-modal__form" onSubmit={handleSubmit}>
+              <label className="admin-modal__label">
+                Nombre del espacio
+                <input className="admin-modal__input" name="Nombre" value={form.Nombre} onChange={handleFormChange} placeholder="Ej. Escritorio 42" />
+              </label>
+              <label className="admin-modal__label">
+                Tipo
+                <select className="admin-modal__input" name="Tipo" value={form.Tipo} onChange={handleFormChange}>
+                  <option value="Escritorio">Escritorio</option>
+                  <option value="Sala">Sala</option>
+                  <option value="Estacionamiento">Estacionamiento</option>
+                </select>
+              </label>
+              <label className="admin-modal__label">
+                Piso
+                <select className="admin-modal__input" name="PisoID" value={form.PisoID} onChange={handleFormChange}>
+                  {pisos.map(p => <option key={p.PisoID} value={String(p.PisoID)}>{p.Nombre}</option>)}
+                </select>
+              </label>
+              {formError && <p className="admin-modal__error" style={{ color: '#ff3246', fontSize: '0.85rem' }}>{formError}</p>}
+              <div className="admin-modal__actions">
+                <button type="button" className="admin-btn-ghost" onClick={() => setShowModal(false)}>Cancelar</button>
+                <button type="submit" className="admin-btn-primary" disabled={saving}>
+                  {saving ? 'Guardando...' : 'Crear Espacio'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </section>
+      )}
 
       <button type="button" className="admin-fab" aria-label="Abrir soporte">
         <AdminIcon name="message" />
@@ -594,7 +716,7 @@ function UsuariosView() {
             <form className="admin-modal__form" onSubmit={handleSubmit}>
               <label className="admin-modal__label">
                 Nombre completo
-                <input className="admin-modal__input" name="Nombre" value={form.Nombre} onChange={handleFormChange} placeholder="Ej. Ana Martínez" />
+                <input className="admin-modal__input" name="Nombre" value={form.Nombre} onChange={handleFormChange} placeholder="Ej. Juan Pérez" />
               </label>
               <label className="admin-modal__label">
                 Correo electrónico

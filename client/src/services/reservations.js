@@ -34,6 +34,24 @@ export function getAllReservaciones() {
 
 // ── Espacios ──────────────────────────────────────────────
 
+export function getAllEspacios() {
+  return apiRequest('/espacios')
+}
+
+export function createEspacio({ Nombre, Tipo, PisoID }) {
+  return apiRequest('/espacios', {
+    method: 'POST',
+    body: { Nombre, Tipo, PisoID },
+  })
+}
+
+export function updateEspacioEstado(espacioId, estado) {
+  return apiRequest(`/espacios/${espacioId}/estado`, {
+    method: 'PUT',
+    body: { estado },
+  })
+}
+
 export function getEspaciosDisponibilidad(fecha, horaInicio, horaFin, pisoId) {
   let url = `/espacios/disponibilidad?fecha=${fecha}&horaInicio=${horaInicio}&horaFin=${horaFin}`
   if (pisoId !== undefined && pisoId !== null && pisoId !== '') {
