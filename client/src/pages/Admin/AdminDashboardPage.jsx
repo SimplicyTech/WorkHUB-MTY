@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useDashboard } from '../../context/useDashboard'
 import { useAuth } from '../../context/useAuth'
-import { getAllEmpleados, getAllReservaciones, createEmpleado } from '../../services/reservations'
+import { getAllEmpleados, getAllReservaciones, createEmpleado, deleteEmpleado, getAllEspacios, createEspacio, updateEspacioEstado, deleteEspacio, getPisos } from '../../services/reservations'
 import './AdminDashboard.css'
 
 const sidebarItems = [
@@ -75,6 +75,8 @@ const activityColor = (status = '') => {
   if (normalized.includes('check-out')) return '#a100ff'
   return '#16e0a3'
 }
+
+const PISO_ADMIN_FUNCIONAL_ID = 2
 
 function AdminIcon({ name }) {
   const common = {
@@ -188,6 +190,15 @@ function AdminIcon({ name }) {
         <path {...common} d="M8 12h8" />
       </>
     ),
+    trash: (
+      <>
+        <path {...common} d="M4 7h16" />
+        <path {...common} d="M10 11v6" />
+        <path {...common} d="M14 11v6" />
+        <path {...common} d="M6 7l1 13h10l1-13" />
+        <path {...common} d="M9 7V4h6v3" />
+      </>
+    ),
   }
 
   return (
@@ -217,14 +228,7 @@ const espaciosList = [
   { id: 'D-504', tipo: 'Escritorio', piso: 'Piso 5', zona: 'Sala Conf.', estado: 'Activo' },
 ]
 
-const usuariosList = [
-  { id: 'U-1024', nombre: 'Ana Martinez', email: 'ana.martinez@accenture.com', rol: 'Admin', depto: 'Operaciones', estado: 'Activo' },
-  { id: 'U-1018', nombre: 'Gilberto R.', email: 'gilberto.r@accenture.com', rol: 'Usuario', depto: 'Tecnologia', estado: 'Activo' },
-  { id: 'U-1007', nombre: 'Maria L.', email: 'maria.l@accenture.com', rol: 'Usuario', depto: 'Finanzas', estado: 'Activo' },
-  { id: 'U-0998', nombre: 'Carlos P.', email: 'carlos.p@accenture.com', rol: 'Usuario', depto: 'Legal', estado: 'Bloqueado' },
-  { id: 'U-0975', nombre: 'Laura V.', email: 'laura.v@accenture.com', rol: 'Supervisor', depto: 'RRHH', estado: 'Activo' },
-  { id: 'U-0961', nombre: 'Pedro S.', email: 'pedro.s@accenture.com', rol: 'Usuario', depto: 'Marketing', estado: 'Inactivo' },
-]
+
 
 const reportZones = [
   { zona: 'Area General', piso: 'P3', pct: '91%', tone: 'hot' },
@@ -351,6 +355,140 @@ function ReportesView() {
 }
 
 function EspaciosView() {
+  const [espacios, setEspacios] = useState([])
+  const [pisos, setPisos] = useState([])
+  const [loadingPisos, setLoadingPisos] = useState(true)
+  const [loadingEspacios, setLoadingEspacios] = useState(false)
+  const [error, setError] = useState(null)
+  
+  const [search, setSearch] = useState('')
+  const [filtroTipo, setFiltroTipo] = useState('todos')
+  const [filtroPiso, setFiltroPiso] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState('todos')
+
+  // Modal
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState({ Nombre: '', Tipo: 'Escritorio', PisoID: '' })
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState(null)
+  const [spaceToDelete, setSpaceToDelete] = useState(null)
+  const [deletingSpace, setDeletingSpace] = useState(false)
+  const [deleteSpaceError, setDeleteSpaceError] = useState(null)
+
+  const cargarPisos = async () => {
+    setLoadingPisos(true)
+    setError(null)
+    try {
+      const resPisos = await getPisos()
+      setPisos(resPisos.data || [])
+      if (resPisos.data?.length > 0 && !form.PisoID) {
+        const pisoFuncional = resPisos.data.find((p) => p.PisoID === PISO_ADMIN_FUNCIONAL_ID)
+        setForm(f => ({ ...f, PisoID: String(pisoFuncional?.PisoID || resPisos.data[0].PisoID) }))
+      }
+    } catch (err) {
+      setError('No se pudieron cargar los pisos')
+    } finally {
+      setLoadingPisos(false)
+    }
+  }
+
+  const cargarEspacios = async (pisoId = filtroPiso) => {
+    if (!pisoId) {
+      setEspacios([])
+      return
+    }
+    setLoadingEspacios(true)
+    setError(null)
+    try {
+      const resEspacios = await getAllEspacios(pisoId)
+      setEspacios(resEspacios.data || [])
+    } catch (err) {
+      setError('No se pudieron cargar los espacios')
+    } finally {
+      setLoadingEspacios(false)
+    }
+  }
+
+  useEffect(() => { cargarPisos() }, [])
+
+  useEffect(() => {
+    cargarEspacios(filtroPiso)
+  }, [filtroPiso])
+
+  const filtrados = espacios.filter(e => {
+    const nombre = (e.Nombre || '').toLowerCase()
+    const id = String(e.EspacioID).toLowerCase()
+    const matchSearch = nombre.includes(search.toLowerCase()) || id.includes(search.toLowerCase())
+    const matchTipo = filtroTipo === 'todos' || e.Tipo === filtroTipo
+    const matchPiso = String(e.PisoID) === filtroPiso
+    const matchEstado = filtroEstado === 'todos' || (e.Estado || 'Activo') === filtroEstado
+    return matchSearch && matchTipo && matchPiso && matchEstado
+  })
+
+  const handleFormChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }))
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setFormError(null)
+    if (!form.Nombre || !form.Tipo || !form.PisoID) {
+      setFormError('Completa todos los campos')
+      return
+    }
+    setSaving(true)
+    try {
+      await createEspacio(form)
+      setShowModal(false)
+      setForm(f => ({ ...f, Nombre: '' }))
+      if (String(form.PisoID) === filtroPiso) cargarEspacios()
+    } catch (err) {
+      setFormError(err?.error || 'Error al crear espacio')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const toggleEstado = async (espacio) => {
+    const estadoActual = espacio.Estado || 'Activo'
+    const nuevoEstado = estadoActual === 'Activo' ? 'Bloqueado' : 'Activo'
+    try {
+      const res = await updateEspacioEstado(espacio.EspacioID, nuevoEstado)
+      const estadoGuardado = res?.data?.Estado || nuevoEstado
+      setEspacios(espacios.map(e => e.EspacioID === espacio.EspacioID ? { ...e, Estado: estadoGuardado } : e))
+      await cargarEspacios()
+    } catch (err) {
+      alert(err?.error || 'Error al actualizar estado')
+    }
+  }
+
+  const openDeleteSpaceModal = (espacio) => {
+    setSpaceToDelete(espacio)
+    setDeleteSpaceError(null)
+  }
+
+  const closeDeleteSpaceModal = () => {
+    if (deletingSpace) return
+    setSpaceToDelete(null)
+    setDeleteSpaceError(null)
+  }
+
+  const handleDeleteSpace = async () => {
+    if (!spaceToDelete) return
+    setDeletingSpace(true)
+    setDeleteSpaceError(null)
+    try {
+      await deleteEspacio(spaceToDelete.EspacioID)
+      setEspacios((actuales) => actuales.filter((e) => e.EspacioID !== spaceToDelete.EspacioID))
+      setSpaceToDelete(null)
+      await cargarEspacios()
+    } catch (err) {
+      setDeleteSpaceError(err?.error || 'No se pudo eliminar el espacio')
+    } finally {
+      setDeletingSpace(false)
+    }
+  }
+
+  const tiposUnicos = [...new Set(espacios.map(e => e.Tipo))].filter(Boolean)
+
   return (
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
@@ -359,79 +497,167 @@ function EspaciosView() {
           <h1>GESTION DE ESPACIOS</h1>
         </div>
         <div className="admin-main__actions">
-          <button type="button" className="admin-btn-export admin-btn-export--primary">
+          <button type="button" className="admin-btn-export admin-btn-export--primary" onClick={() => setShowModal(true)}>
             <AdminIcon name="plusBox" />
             Agregar Espacio
           </button>
         </div>
       </header>
 
-      <section className="admin-management-tools">
+      <section className="admin-management-tools admin-management-tools--spaces">
         <label className="admin-search">
           <AdminIcon name="search" />
-          <input type="search" placeholder="Buscar por ID o nombre..." />
+          <input type="search" placeholder="Buscar por ID o nombre..." value={search} onChange={e => setSearch(e.target.value)} />
         </label>
-        <select className="admin-select" defaultValue="tipo">
-          <option value="tipo">Tipo: Todos</option>
+        <select className="admin-select" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
+          <option value="todos">Tipo: Todos</option>
+          {tiposUnicos.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
-        <select className="admin-select" defaultValue="piso">
-          <option value="piso">Piso: Todos</option>
+        <select className="admin-select" value={filtroPiso} onChange={e => setFiltroPiso(e.target.value)}>
+          <option value="">{loadingPisos ? 'Cargando pisos...' : 'Selecciona piso'}</option>
+          {pisos.map(p => (
+            <option key={p.PisoID} value={String(p.PisoID)} disabled={p.PisoID !== PISO_ADMIN_FUNCIONAL_ID}>
+              {p.Nombre}{p.PisoID === PISO_ADMIN_FUNCIONAL_ID ? '' : ' — Próximamente'}
+            </option>
+          ))}
         </select>
-        <select className="admin-select" defaultValue="estado">
-          <option value="estado">Estado: Todos</option>
+        <select className="admin-select" value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
+          <option value="todos">Estado: Todos</option>
+          <option value="Activo">Activo</option>
+          <option value="Bloqueado">Bloqueado</option>
         </select>
       </section>
 
       <section className="admin-card admin-card--management-table">
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Tipo</th>
-                <th>Piso</th>
-                <th>Zona</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {espaciosList.map((e) => (
-                <tr key={e.id}>
-                  <td className="admin-table__id">{e.id}</td>
-                  <td>{e.tipo}</td>
-                  <td>{e.piso}</td>
-                  <td>{e.zona}</td>
-                  <td>
-                    <span className={`admin-badge ${
-                      e.estado === 'Activo' ? 'admin-badge--ok' :
-                      e.estado === 'Inactivo' ? 'admin-badge--rose' :
-                      'admin-badge--yellow'
-                    }`}>{e.estado}</span>
-                  </td>
-                  <td>
-                    <div className="admin-table-actions">
-                      <button type="button" className="admin-btn-ghost-sm">Editar</button>
-                      <button type="button" className={e.estado === 'Activo' ? 'admin-btn-danger-sm' : 'admin-btn-ghost-sm'}>
-                        {e.estado === 'Activo' ? 'Desactivar' : 'Activar'}
-                      </button>
-                    </div>
-                  </td>
+        {!filtroPiso && !loadingPisos && <p className="admin-table-msg">Selecciona un piso para ver sus espacios.</p>}
+        {loadingEspacios && <p className="admin-table-msg">Cargando espacios…</p>}
+        {error && <p className="admin-table-msg admin-table-msg--error">{error}</p>}
+        {filtroPiso && !loadingEspacios && !error && (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Tipo</th>
+                  <th>Piso</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="admin-pagination">
-          <span>Mostrando 1-6 de 296 espacios</span>
-          <div>
-            <button type="button" className="is-active">1</button>
-            <button type="button">2</button>
-            <button type="button">3</button>
-            <button type="button">→</button>
+              </thead>
+              <tbody>
+                {filtrados.map((e) => {
+                  const estadoActual = e.Estado || 'Activo';
+                  return (
+                    <tr key={e.EspacioID}>
+                      <td className="admin-table__id">E-{e.EspacioID}</td>
+                      <td>{e.Nombre}</td>
+                      <td>{e.Tipo}</td>
+                      <td>{e.PisoNombre || `Piso ${e.PisoID}`}</td>
+                      <td>
+                        <span className={`admin-badge ${
+                          estadoActual === 'Activo' ? 'admin-badge--ok' : 'admin-badge--rose'
+                        }`}>{estadoActual}</span>
+                      </td>
+                      <td>
+                        <div className="admin-table-actions">
+                          <button
+                            type="button"
+                            className="admin-btn-danger-sm admin-btn-danger-sm--icon"
+                            onClick={() => openDeleteSpaceModal(e)}
+                            aria-label={`Eliminar espacio ${e.Nombre}`}
+                          >
+                            <AdminIcon name="trash" />
+                            Eliminar
+                          </button>
+                          <button type="button" className={estadoActual === 'Activo' ? 'admin-btn-danger-sm' : 'admin-btn-ghost-sm'} onClick={() => toggleEstado(e)}>
+                            {estadoActual === 'Activo' ? 'Bloquear' : 'Activar'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {filtrados.length === 0 && (
+                  <tr><td colSpan={6} className="admin-table-msg">Sin resultados</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {filtroPiso && !loadingEspacios && !error && (
+          <div className="admin-pagination">
+            <span>Mostrando {filtrados.length} de {espacios.length} espacios</span>
+          </div>
+        )}
+      </section>
+
+      {/* ── Modal Agregar Espacio ── */}
+      {showModal && (
+        <div className="admin-modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal__header">
+              <h2>Agregar Espacio</h2>
+              <button type="button" className="admin-modal__close" onClick={() => setShowModal(false)}>✕</button>
+            </div>
+            <form className="admin-modal__form" onSubmit={handleSubmit}>
+              <label className="admin-modal__label">
+                Nombre del espacio
+                <input className="admin-modal__input" name="Nombre" value={form.Nombre} onChange={handleFormChange} placeholder="Ej. Escritorio 42" />
+              </label>
+              <label className="admin-modal__label">
+                Tipo
+                <select className="admin-modal__input" name="Tipo" value={form.Tipo} onChange={handleFormChange}>
+                  <option value="Escritorio">Escritorio</option>
+                  <option value="Sala">Sala</option>
+                  <option value="Estacionamiento">Estacionamiento</option>
+                </select>
+              </label>
+              <label className="admin-modal__label">
+                Piso
+                <select className="admin-modal__input" name="PisoID" value={form.PisoID} onChange={handleFormChange}>
+                  {pisos.map(p => (
+                    <option key={p.PisoID} value={String(p.PisoID)} disabled={p.PisoID !== PISO_ADMIN_FUNCIONAL_ID}>
+                      {p.Nombre}{p.PisoID === PISO_ADMIN_FUNCIONAL_ID ? '' : ' — Próximamente'}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {formError && <p className="admin-modal__error" style={{ color: '#ff3246', fontSize: '0.85rem' }}>{formError}</p>}
+              <div className="admin-modal__actions">
+                <button type="button" className="admin-btn-ghost" onClick={() => setShowModal(false)}>Cancelar</button>
+                <button type="submit" className="admin-btn-primary" disabled={saving}>
+                  {saving ? 'Guardando...' : 'Crear Espacio'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </section>
+      )}
+
+      {spaceToDelete && (
+        <div className="admin-modal-overlay" onClick={closeDeleteSpaceModal}>
+          <div className="admin-modal admin-modal--confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal__header">
+              <h2>Confirmar eliminación</h2>
+              <button type="button" className="admin-modal__close" onClick={closeDeleteSpaceModal} disabled={deletingSpace}>✕</button>
+            </div>
+            <div className="admin-confirm">
+              <p className="admin-confirm__title">¿Estás seguro que quieres eliminar este espacio?</p>
+              <p className="admin-confirm__body">
+                Se eliminará <strong>{spaceToDelete.Nombre}</strong> de la base de datos junto con sus reservaciones y bloqueos relacionados.
+              </p>
+              {deleteSpaceError && <p className="admin-modal__error">{deleteSpaceError}</p>}
+              <div className="admin-modal__actions">
+                <button type="button" className="admin-btn-export" onClick={closeDeleteSpaceModal} disabled={deletingSpace}>Cancelar</button>
+                <button type="button" className="admin-btn-danger" onClick={handleDeleteSpace} disabled={deletingSpace}>
+                  {deletingSpace ? 'Eliminando…' : 'Eliminar espacio'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <button type="button" className="admin-fab" aria-label="Abrir soporte">
         <AdminIcon name="message" />
@@ -441,6 +667,7 @@ function EspaciosView() {
 }
 
 function UsuariosView() {
+  const { user } = useAuth()
   const [empleados, setEmpleados] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -452,6 +679,9 @@ function UsuariosView() {
   const [form, setForm] = useState({ Nombre: '', Correo: '', Contrasena: '', RolID: '3', NivelID: '1' })
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState(null)
+  const [userToDelete, setUserToDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
 
   const cargarEmpleados = () => {
     setLoading(true)
@@ -498,6 +728,32 @@ function UsuariosView() {
       setFormError(err?.error || 'Error al crear el usuario')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const openDeleteModal = (empleado) => {
+    setUserToDelete(empleado)
+    setDeleteError(null)
+  }
+
+  const closeDeleteModal = () => {
+    if (deleting) return
+    setUserToDelete(null)
+    setDeleteError(null)
+  }
+
+  const handleDelete = async () => {
+    if (!userToDelete) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteEmpleado(userToDelete.EmpleadoID)
+      setEmpleados((actuales) => actuales.filter((u) => u.EmpleadoID !== userToDelete.EmpleadoID))
+      setUserToDelete(null)
+    } catch (err) {
+      setDeleteError(err?.error || 'No se pudo dar de baja al usuario')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -549,6 +805,7 @@ function UsuariosView() {
                   <th>Correo</th>
                   <th>Rol</th>
                   <th>Puntos</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -567,10 +824,23 @@ function UsuariosView() {
                       </span>
                     </td>
                     <td>{u.Puntos ?? 0}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="admin-btn-danger-sm admin-btn-danger-sm--icon"
+                        onClick={() => openDeleteModal(u)}
+                        disabled={String(user?.empleadoId) === String(u.EmpleadoID)}
+                        title={String(user?.empleadoId) === String(u.EmpleadoID) ? 'No puedes darte de baja a ti mismo' : 'Eliminar usuario'}
+                        aria-label={`Eliminar usuario ${u.Nombre}`}
+                      >
+                        <AdminIcon name="trash" />
+                        Eliminar
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {filtrados.length === 0 && (
-                  <tr><td colSpan={5} className="admin-table-msg">Sin resultados</td></tr>
+                  <tr><td colSpan={6} className="admin-table-msg">Sin resultados</td></tr>
                 )}
               </tbody>
             </table>
@@ -594,7 +864,7 @@ function UsuariosView() {
             <form className="admin-modal__form" onSubmit={handleSubmit}>
               <label className="admin-modal__label">
                 Nombre completo
-                <input className="admin-modal__input" name="Nombre" value={form.Nombre} onChange={handleFormChange} placeholder="Ej. Ana Martínez" />
+                <input className="admin-modal__input" name="Nombre" value={form.Nombre} onChange={handleFormChange} placeholder="Ej. Juan Pérez" />
               </label>
               <label className="admin-modal__label">
                 Correo electrónico
@@ -622,6 +892,30 @@ function UsuariosView() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {userToDelete && (
+        <div className="admin-modal-overlay" onClick={closeDeleteModal}>
+          <div className="admin-modal admin-modal--confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal__header">
+              <h2>Confirmar baja</h2>
+              <button type="button" className="admin-modal__close" onClick={closeDeleteModal} disabled={deleting}>✕</button>
+            </div>
+            <div className="admin-confirm">
+              <p className="admin-confirm__title">¿Estás seguro que quieres dar de baja?</p>
+              <p className="admin-confirm__body">
+                Se eliminará a <strong>{userToDelete.Nombre}</strong> de la base de datos junto con sus reservaciones y registros relacionados.
+              </p>
+              {deleteError && <p className="admin-modal__error">{deleteError}</p>}
+              <div className="admin-modal__actions">
+                <button type="button" className="admin-btn-export" onClick={closeDeleteModal} disabled={deleting}>Cancelar</button>
+                <button type="button" className="admin-btn-danger" onClick={handleDelete} disabled={deleting}>
+                  {deleting ? 'Eliminando…' : 'Dar de baja'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1213,10 +1507,12 @@ export default function AdminDashboardPage() {
         </nav>
 
         <div className="admin-user">
-          <div className="admin-user__avatar">AM</div>
+          <div className="admin-user__avatar">{user?.initials || '??'}</div>
           <div>
-            <strong>Ana Martinez</strong>
-            <span>Administradora</span>
+            <strong>{user?.name || 'Usuario'}</strong>
+            <span>{
+              ({ 1: 'Empleado', 2: 'Admin Facilities', 3: 'Visitante', 4: 'Admin Sistema', 5: 'Guardia' })[user?.rolId] || 'Administrador'
+            }</span>
           </div>
         </div>
       </aside>
