@@ -77,12 +77,13 @@ function SelectableRoom({ sala, name, code, style, selectedDesk, onSelect }) {
   const palette = {
     available: { bg: '#05f0a533', border: '#05f0a5', label: '#05f0a5', cursor: 'pointer' },
     occupied:  { bg: '#ff324633', border: '#ff3246', label: '#ff3246', cursor: 'not-allowed' },
+    blocked:   { bg: '#77707f33', border: '#77707f', label: '#d8d2de', cursor: 'not-allowed' },
     selected:  { bg: '#a100ff55', border: '#ffffff', label: '#ffffff', cursor: 'pointer' },
   }
   const c = palette[status] || palette.available
 
   const handleClick = () => {
-    if (status === 'occupied') return
+    if (status === 'occupied' || status === 'blocked') return
     onSelect(sala.id)
   }
 
@@ -205,6 +206,12 @@ export default function FloorMap({ desks, salas = [], rooms, selectedDesk, onSel
                 <span className="w-2 h-2 rounded bg-[#ff3246]" />
                 <span className="font-mono text-text-muted" style={{ fontSize: 8 }}>
                   Ocupado
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded bg-[#77707f]" />
+                <span className="font-mono text-text-muted" style={{ fontSize: 8 }}>
+                  Bloqueado
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
