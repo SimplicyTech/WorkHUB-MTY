@@ -26,6 +26,12 @@ export function createEmpleado({ Nombre, Correo, Contrasena, RolID, NivelID }) {
   })
 }
 
+export function deleteEmpleado(empleadoId) {
+  return apiRequest(`/empleados/${empleadoId}`, {
+    method: 'DELETE',
+  })
+}
+
 // ── Reservaciones (Admin) ─────────────────────────────────
 
 export function getAllReservaciones() {

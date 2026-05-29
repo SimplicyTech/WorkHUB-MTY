@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useDashboard } from '../../context/useDashboard'
 import { useAuth } from '../../context/useAuth'
-import { getAllEmpleados, getAllReservaciones, createEmpleado, getAllEspacios, createEspacio, updateEspacioEstado, getPisos } from '../../services/reservations'
+import { getAllEmpleados, getAllReservaciones, createEmpleado, deleteEmpleado, getAllEspacios, createEspacio, updateEspacioEstado, getPisos } from '../../services/reservations'
 import './AdminDashboard.css'
 
 const sidebarItems = [
@@ -186,6 +186,15 @@ function AdminIcon({ name }) {
         <rect {...common} x="5" y="5" width="14" height="14" rx="3" />
         <path {...common} d="M12 8v8" />
         <path {...common} d="M8 12h8" />
+      </>
+    ),
+    trash: (
+      <>
+        <path {...common} d="M4 7h16" />
+        <path {...common} d="M10 11v6" />
+        <path {...common} d="M14 11v6" />
+        <path {...common} d="M6 7l1 13h10l1-13" />
+        <path {...common} d="M9 7V4h6v3" />
       </>
     ),
   }
@@ -563,6 +572,7 @@ function EspaciosView() {
 }
 
 function UsuariosView() {
+  const { user } = useAuth()
   const [empleados, setEmpleados] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -574,6 +584,9 @@ function UsuariosView() {
   const [form, setForm] = useState({ Nombre: '', Correo: '', Contrasena: '', RolID: '3', NivelID: '1' })
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState(null)
+  const [userToDelete, setUserToDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
 
   const cargarEmpleados = () => {
     setLoading(true)
@@ -620,6 +633,32 @@ function UsuariosView() {
       setFormError(err?.error || 'Error al crear el usuario')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const openDeleteModal = (empleado) => {
+    setUserToDelete(empleado)
+    setDeleteError(null)
+  }
+
+  const closeDeleteModal = () => {
+    if (deleting) return
+    setUserToDelete(null)
+    setDeleteError(null)
+  }
+
+  const handleDelete = async () => {
+    if (!userToDelete) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteEmpleado(userToDelete.EmpleadoID)
+      setEmpleados((actuales) => actuales.filter((u) => u.EmpleadoID !== userToDelete.EmpleadoID))
+      setUserToDelete(null)
+    } catch (err) {
+      setDeleteError(err?.error || 'No se pudo dar de baja al usuario')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -671,6 +710,7 @@ function UsuariosView() {
                   <th>Correo</th>
                   <th>Rol</th>
                   <th>Puntos</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -689,10 +729,23 @@ function UsuariosView() {
                       </span>
                     </td>
                     <td>{u.Puntos ?? 0}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="admin-btn-danger-sm admin-btn-danger-sm--icon"
+                        onClick={() => openDeleteModal(u)}
+                        disabled={String(user?.empleadoId) === String(u.EmpleadoID)}
+                        title={String(user?.empleadoId) === String(u.EmpleadoID) ? 'No puedes darte de baja a ti mismo' : 'Eliminar usuario'}
+                        aria-label={`Eliminar usuario ${u.Nombre}`}
+                      >
+                        <AdminIcon name="trash" />
+                        Eliminar
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {filtrados.length === 0 && (
-                  <tr><td colSpan={5} className="admin-table-msg">Sin resultados</td></tr>
+                  <tr><td colSpan={6} className="admin-table-msg">Sin resultados</td></tr>
                 )}
               </tbody>
             </table>
@@ -744,6 +797,30 @@ function UsuariosView() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {userToDelete && (
+        <div className="admin-modal-overlay" onClick={closeDeleteModal}>
+          <div className="admin-modal admin-modal--confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal__header">
+              <h2>Confirmar baja</h2>
+              <button type="button" className="admin-modal__close" onClick={closeDeleteModal} disabled={deleting}>✕</button>
+            </div>
+            <div className="admin-confirm">
+              <p className="admin-confirm__title">¿Estás seguro que quieres dar de baja?</p>
+              <p className="admin-confirm__body">
+                Se eliminará a <strong>{userToDelete.Nombre}</strong> de la base de datos junto con sus reservaciones y registros relacionados.
+              </p>
+              {deleteError && <p className="admin-modal__error">{deleteError}</p>}
+              <div className="admin-modal__actions">
+                <button type="button" className="admin-btn-export" onClick={closeDeleteModal} disabled={deleting}>Cancelar</button>
+                <button type="button" className="admin-btn-danger" onClick={handleDelete} disabled={deleting}>
+                  {deleting ? 'Eliminando…' : 'Dar de baja'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
