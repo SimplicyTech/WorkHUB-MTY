@@ -4,9 +4,10 @@ import { useAuth } from '../../context/useAuth'
 import CustomDatePicker from './CustomDatePicker'
 import CustomTimePicker from './CustomTimePicker'
 
-// PisoID que actualmente tiene mapa interactivo implementado.
-// El resto de los pisos se listan pero quedan deshabilitados.
-const PISO_CON_MAPA_ID = 2
+// Pisos que tienen mapas interactivos implementados. Añade aquí nuevos PisoID
+// cuando implementes sus componentes `FloorMap` correspondientes.
+const SUPPORTED_MAP_PISOS = [1, 2,3,4] // 1 => Piso 9, 2 => Piso 3
+const PISO_CON_MAPA_ID = SUPPORTED_MAP_PISOS[0]
 
 function getTodayString() {
   const d = new Date()
@@ -314,7 +315,7 @@ export default function BookingSidebar({
                 <option value="">Cargando pisos...</option>
               ) : (
                 pisos.map((p) => {
-                  const hasMap = p.PisoID === PISO_CON_MAPA_ID
+                  const hasMap = SUPPORTED_MAP_PISOS.includes(p.PisoID)
                   return (
                     <option key={p.PisoID} value={String(p.PisoID)} disabled={!hasMap}>
                       {p.Nombre}{hasMap ? '' : ' — Próximamente'}
