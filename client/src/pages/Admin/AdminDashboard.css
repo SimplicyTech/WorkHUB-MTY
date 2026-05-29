@@ -1103,6 +1103,10 @@
   margin-bottom: 1.2rem;
 }
 
+.admin-management-tools--spaces {
+  grid-template-columns: minmax(360px, 1fr) 124px 172px 150px;
+}
+
 .admin-management-tools--users {
   grid-template-columns: minmax(360px, 1fr) 120px 130px 126px;
 }
@@ -1661,6 +1665,7 @@
   }
 
   .admin-management-tools,
+  .admin-management-tools--spaces,
   .admin-management-tools--users {
     grid-template-columns: 1fr 1fr;
   }
@@ -1724,6 +1729,7 @@
   }
 
   .admin-management-tools,
+  .admin-management-tools--spaces,
   .admin-management-tools--users {
     grid-template-columns: 1fr;
   }

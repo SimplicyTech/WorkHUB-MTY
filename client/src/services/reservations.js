@@ -40,8 +40,11 @@ export function getAllReservaciones() {
 
 // ── Espacios ──────────────────────────────────────────────
 
-export function getAllEspacios() {
-  return apiRequest('/espacios')
+export function getAllEspacios(pisoId) {
+  const query = pisoId !== undefined && pisoId !== null && pisoId !== ''
+    ? `?pisoId=${pisoId}`
+    : ''
+  return apiRequest(`/espacios${query}`)
 }
 
 export function createEspacio({ Nombre, Tipo, PisoID }) {
@@ -52,9 +55,22 @@ export function createEspacio({ Nombre, Tipo, PisoID }) {
 }
 
 export function updateEspacioEstado(espacioId, estado) {
-  return apiRequest(`/espacios/${espacioId}/estado`, {
-    method: 'PUT',
-    body: { estado },
+  const bloquear = estado === 'Bloqueado'
+  return apiRequest(`/espacios/${espacioId}/bloqueo`, {
+    method: bloquear ? 'POST' : 'DELETE',
+    body: bloquear ? { motivo: 'Bloqueo administrativo' } : undefined,
+  }).then((response) => {
+    notifyDashboardChanged()
+    return response
+  })
+}
+
+export function deleteEspacio(espacioId) {
+  return apiRequest(`/espacios/${espacioId}`, {
+    method: 'DELETE',
+  }).then((response) => {
+    notifyDashboardChanged()
+    return response
   })
 }
 

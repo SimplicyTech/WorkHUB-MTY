@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useDashboard } from '../../context/useDashboard'
 import { useAuth } from '../../context/useAuth'
-import { getAllEmpleados, getAllReservaciones, createEmpleado, deleteEmpleado, getAllEspacios, createEspacio, updateEspacioEstado, getPisos } from '../../services/reservations'
+import { getAllEmpleados, getAllReservaciones, createEmpleado, deleteEmpleado, getAllEspacios, createEspacio, updateEspacioEstado, deleteEspacio, getPisos } from '../../services/reservations'
 import './AdminDashboard.css'
 
 const sidebarItems = [
@@ -75,6 +75,8 @@ const activityColor = (status = '') => {
   if (normalized.includes('check-out')) return '#a100ff'
   return '#16e0a3'
 }
+
+const PISO_ADMIN_FUNCIONAL_ID = 2
 
 function AdminIcon({ name }) {
   const common = {
@@ -355,12 +357,13 @@ function ReportesView() {
 function EspaciosView() {
   const [espacios, setEspacios] = useState([])
   const [pisos, setPisos] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loadingPisos, setLoadingPisos] = useState(true)
+  const [loadingEspacios, setLoadingEspacios] = useState(false)
   const [error, setError] = useState(null)
   
   const [search, setSearch] = useState('')
   const [filtroTipo, setFiltroTipo] = useState('todos')
-  const [filtroPiso, setFiltroPiso] = useState('todos')
+  const [filtroPiso, setFiltroPiso] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('todos')
 
   // Modal
@@ -368,34 +371,56 @@ function EspaciosView() {
   const [form, setForm] = useState({ Nombre: '', Tipo: 'Escritorio', PisoID: '' })
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState(null)
+  const [spaceToDelete, setSpaceToDelete] = useState(null)
+  const [deletingSpace, setDeletingSpace] = useState(false)
+  const [deleteSpaceError, setDeleteSpaceError] = useState(null)
 
-  const cargarDatos = async () => {
-    setLoading(true)
+  const cargarPisos = async () => {
+    setLoadingPisos(true)
+    setError(null)
     try {
-      const [resEspacios, resPisos] = await Promise.all([
-        getAllEspacios(),
-        getPisos()
-      ])
-      setEspacios(resEspacios.data || [])
+      const resPisos = await getPisos()
       setPisos(resPisos.data || [])
       if (resPisos.data?.length > 0 && !form.PisoID) {
-        setForm(f => ({ ...f, PisoID: String(resPisos.data[0].PisoID) }))
+        const pisoFuncional = resPisos.data.find((p) => p.PisoID === PISO_ADMIN_FUNCIONAL_ID)
+        setForm(f => ({ ...f, PisoID: String(pisoFuncional?.PisoID || resPisos.data[0].PisoID) }))
       }
     } catch (err) {
-      setError('No se pudo cargar la información')
+      setError('No se pudieron cargar los pisos')
     } finally {
-      setLoading(false)
+      setLoadingPisos(false)
     }
   }
 
-  useEffect(() => { cargarDatos() }, [])
+  const cargarEspacios = async (pisoId = filtroPiso) => {
+    if (!pisoId) {
+      setEspacios([])
+      return
+    }
+    setLoadingEspacios(true)
+    setError(null)
+    try {
+      const resEspacios = await getAllEspacios(pisoId)
+      setEspacios(resEspacios.data || [])
+    } catch (err) {
+      setError('No se pudieron cargar los espacios')
+    } finally {
+      setLoadingEspacios(false)
+    }
+  }
+
+  useEffect(() => { cargarPisos() }, [])
+
+  useEffect(() => {
+    cargarEspacios(filtroPiso)
+  }, [filtroPiso])
 
   const filtrados = espacios.filter(e => {
     const nombre = (e.Nombre || '').toLowerCase()
     const id = String(e.EspacioID).toLowerCase()
     const matchSearch = nombre.includes(search.toLowerCase()) || id.includes(search.toLowerCase())
     const matchTipo = filtroTipo === 'todos' || e.Tipo === filtroTipo
-    const matchPiso = filtroPiso === 'todos' || String(e.PisoID) === filtroPiso
+    const matchPiso = String(e.PisoID) === filtroPiso
     const matchEstado = filtroEstado === 'todos' || (e.Estado || 'Activo') === filtroEstado
     return matchSearch && matchTipo && matchPiso && matchEstado
   })
@@ -414,9 +439,9 @@ function EspaciosView() {
       await createEspacio(form)
       setShowModal(false)
       setForm(f => ({ ...f, Nombre: '' }))
-      cargarDatos()
+      if (String(form.PisoID) === filtroPiso) cargarEspacios()
     } catch (err) {
-      setFormError(err.response?.data?.error || 'Error al crear espacio')
+      setFormError(err?.error || 'Error al crear espacio')
     } finally {
       setSaving(false)
     }
@@ -426,10 +451,39 @@ function EspaciosView() {
     const estadoActual = espacio.Estado || 'Activo'
     const nuevoEstado = estadoActual === 'Activo' ? 'Bloqueado' : 'Activo'
     try {
-      await updateEspacioEstado(espacio.EspacioID, nuevoEstado)
-      setEspacios(espacios.map(e => e.EspacioID === espacio.EspacioID ? { ...e, Estado: nuevoEstado } : e))
+      const res = await updateEspacioEstado(espacio.EspacioID, nuevoEstado)
+      const estadoGuardado = res?.data?.Estado || nuevoEstado
+      setEspacios(espacios.map(e => e.EspacioID === espacio.EspacioID ? { ...e, Estado: estadoGuardado } : e))
+      await cargarEspacios()
     } catch (err) {
-      alert('Error al actualizar estado')
+      alert(err?.error || 'Error al actualizar estado')
+    }
+  }
+
+  const openDeleteSpaceModal = (espacio) => {
+    setSpaceToDelete(espacio)
+    setDeleteSpaceError(null)
+  }
+
+  const closeDeleteSpaceModal = () => {
+    if (deletingSpace) return
+    setSpaceToDelete(null)
+    setDeleteSpaceError(null)
+  }
+
+  const handleDeleteSpace = async () => {
+    if (!spaceToDelete) return
+    setDeletingSpace(true)
+    setDeleteSpaceError(null)
+    try {
+      await deleteEspacio(spaceToDelete.EspacioID)
+      setEspacios((actuales) => actuales.filter((e) => e.EspacioID !== spaceToDelete.EspacioID))
+      setSpaceToDelete(null)
+      await cargarEspacios()
+    } catch (err) {
+      setDeleteSpaceError(err?.error || 'No se pudo eliminar el espacio')
+    } finally {
+      setDeletingSpace(false)
     }
   }
 
@@ -450,7 +504,7 @@ function EspaciosView() {
         </div>
       </header>
 
-      <section className="admin-management-tools">
+      <section className="admin-management-tools admin-management-tools--spaces">
         <label className="admin-search">
           <AdminIcon name="search" />
           <input type="search" placeholder="Buscar por ID o nombre..." value={search} onChange={e => setSearch(e.target.value)} />
@@ -460,8 +514,12 @@ function EspaciosView() {
           {tiposUnicos.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
         <select className="admin-select" value={filtroPiso} onChange={e => setFiltroPiso(e.target.value)}>
-          <option value="todos">Piso: Todos</option>
-          {pisos.map(p => <option key={p.PisoID} value={String(p.PisoID)}>{p.Nombre}</option>)}
+          <option value="">{loadingPisos ? 'Cargando pisos...' : 'Selecciona piso'}</option>
+          {pisos.map(p => (
+            <option key={p.PisoID} value={String(p.PisoID)} disabled={p.PisoID !== PISO_ADMIN_FUNCIONAL_ID}>
+              {p.Nombre}{p.PisoID === PISO_ADMIN_FUNCIONAL_ID ? '' : ' — Próximamente'}
+            </option>
+          ))}
         </select>
         <select className="admin-select" value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
           <option value="todos">Estado: Todos</option>
@@ -471,9 +529,10 @@ function EspaciosView() {
       </section>
 
       <section className="admin-card admin-card--management-table">
-        {loading && <p className="admin-table-msg">Cargando espacios…</p>}
+        {!filtroPiso && !loadingPisos && <p className="admin-table-msg">Selecciona un piso para ver sus espacios.</p>}
+        {loadingEspacios && <p className="admin-table-msg">Cargando espacios…</p>}
         {error && <p className="admin-table-msg admin-table-msg--error">{error}</p>}
-        {!loading && !error && (
+        {filtroPiso && !loadingEspacios && !error && (
           <div className="admin-table-wrap">
             <table className="admin-table">
               <thead>
@@ -502,7 +561,15 @@ function EspaciosView() {
                       </td>
                       <td>
                         <div className="admin-table-actions">
-                          <button type="button" className="admin-btn-ghost-sm">Editar</button>
+                          <button
+                            type="button"
+                            className="admin-btn-danger-sm admin-btn-danger-sm--icon"
+                            onClick={() => openDeleteSpaceModal(e)}
+                            aria-label={`Eliminar espacio ${e.Nombre}`}
+                          >
+                            <AdminIcon name="trash" />
+                            Eliminar
+                          </button>
                           <button type="button" className={estadoActual === 'Activo' ? 'admin-btn-danger-sm' : 'admin-btn-ghost-sm'} onClick={() => toggleEstado(e)}>
                             {estadoActual === 'Activo' ? 'Bloquear' : 'Activar'}
                           </button>
@@ -518,7 +585,7 @@ function EspaciosView() {
             </table>
           </div>
         )}
-        {!loading && !error && (
+        {filtroPiso && !loadingEspacios && !error && (
           <div className="admin-pagination">
             <span>Mostrando {filtrados.length} de {espacios.length} espacios</span>
           </div>
@@ -549,7 +616,11 @@ function EspaciosView() {
               <label className="admin-modal__label">
                 Piso
                 <select className="admin-modal__input" name="PisoID" value={form.PisoID} onChange={handleFormChange}>
-                  {pisos.map(p => <option key={p.PisoID} value={String(p.PisoID)}>{p.Nombre}</option>)}
+                  {pisos.map(p => (
+                    <option key={p.PisoID} value={String(p.PisoID)} disabled={p.PisoID !== PISO_ADMIN_FUNCIONAL_ID}>
+                      {p.Nombre}{p.PisoID === PISO_ADMIN_FUNCIONAL_ID ? '' : ' — Próximamente'}
+                    </option>
+                  ))}
                 </select>
               </label>
               {formError && <p className="admin-modal__error" style={{ color: '#ff3246', fontSize: '0.85rem' }}>{formError}</p>}
@@ -560,6 +631,30 @@ function EspaciosView() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {spaceToDelete && (
+        <div className="admin-modal-overlay" onClick={closeDeleteSpaceModal}>
+          <div className="admin-modal admin-modal--confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal__header">
+              <h2>Confirmar eliminación</h2>
+              <button type="button" className="admin-modal__close" onClick={closeDeleteSpaceModal} disabled={deletingSpace}>✕</button>
+            </div>
+            <div className="admin-confirm">
+              <p className="admin-confirm__title">¿Estás seguro que quieres eliminar este espacio?</p>
+              <p className="admin-confirm__body">
+                Se eliminará <strong>{spaceToDelete.Nombre}</strong> de la base de datos junto con sus reservaciones y bloqueos relacionados.
+              </p>
+              {deleteSpaceError && <p className="admin-modal__error">{deleteSpaceError}</p>}
+              <div className="admin-modal__actions">
+                <button type="button" className="admin-btn-export" onClick={closeDeleteSpaceModal} disabled={deletingSpace}>Cancelar</button>
+                <button type="button" className="admin-btn-danger" onClick={handleDeleteSpace} disabled={deletingSpace}>
+                  {deletingSpace ? 'Eliminando…' : 'Eliminar espacio'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
