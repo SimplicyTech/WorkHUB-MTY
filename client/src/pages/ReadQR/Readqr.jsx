@@ -140,7 +140,14 @@ export default function ReadQRPage() {
     console.log(err?.response)
     console.log(err?.response?.data)
 
+<<<<<<< Updated upstream
    
+=======
+    console.log('SCAN ERROR', err)
+    console.log(err?.response?.data)
+    console.log(err?.message)
+
+>>>>>>> Stashed changes
   }
 },
 
