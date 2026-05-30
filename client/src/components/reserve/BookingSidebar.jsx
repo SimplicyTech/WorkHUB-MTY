@@ -189,7 +189,7 @@ export default function BookingSidebar({
     validateTimes(entryTime, exitTime, value)
   }
 
-  const displayStats = stats || { available: 0, occupied: 0, total: 0 }
+  const displayStats = stats || { available: 0, occupied: 0, blocked: 0, total: 0 }
   const isPastEntryToday = isToday(date) && getTimeMinutes(entryTime) < getNowMinutes()
   const isValidTimeRange =
     isExitAfterEntry(entryTime, exitTime) &&
@@ -335,7 +335,7 @@ export default function BookingSidebar({
           <span className="font-mono text-[10px] text-text-muted font-semibold uppercase tracking-wide">
             Disponibilidad {pisos.find((p) => String(p.PisoID) === floor)?.Nombre || ''}
           </span>
-          <div className="flex gap-1.5">
+          <div className="grid grid-cols-2 gap-1.5 min-[420px]:grid-cols-4">
             <div className="flex-1 flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg bg-surface-badge">
               <span className="font-heading text-[22px] font-bold text-accent">
                 {loadingStats ? '…' : displayStats.available}
@@ -347,6 +347,12 @@ export default function BookingSidebar({
                 {loadingStats ? '…' : displayStats.occupied}
               </span>
               <span className="font-mono text-[8px] text-text-muted">ocupados</span>
+            </div>
+            <div className="flex-1 flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg bg-surface-badge">
+              <span className="font-heading text-[22px] font-bold text-[#d8d2de]">
+                {loadingStats ? '…' : displayStats.blocked}
+              </span>
+              <span className="font-mono text-[8px] text-text-muted">bloqueados</span>
             </div>
             <div className="flex-1 flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg bg-surface-badge">
               <span className="font-heading text-[22px] font-bold text-white">

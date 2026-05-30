@@ -26,6 +26,12 @@ export function createEmpleado({ Nombre, Correo, Contrasena, RolID, NivelID }) {
   })
 }
 
+export function deleteEmpleado(empleadoId) {
+  return apiRequest(`/empleados/${empleadoId}`, {
+    method: 'DELETE',
+  })
+}
+
 // ── Reservaciones (Admin) ─────────────────────────────────
 
 export function getAllReservaciones() {
@@ -33,6 +39,40 @@ export function getAllReservaciones() {
 }
 
 // ── Espacios ──────────────────────────────────────────────
+
+export function getAllEspacios(pisoId) {
+  const query = pisoId !== undefined && pisoId !== null && pisoId !== ''
+    ? `?pisoId=${pisoId}`
+    : ''
+  return apiRequest(`/espacios${query}`)
+}
+
+export function createEspacio({ Nombre, Tipo, PisoID }) {
+  return apiRequest('/espacios', {
+    method: 'POST',
+    body: { Nombre, Tipo, PisoID },
+  })
+}
+
+export function updateEspacioEstado(espacioId, estado) {
+  const bloquear = estado === 'Bloqueado'
+  return apiRequest(`/espacios/${espacioId}/bloqueo`, {
+    method: bloquear ? 'POST' : 'DELETE',
+    body: bloquear ? { motivo: 'Bloqueo administrativo' } : undefined,
+  }).then((response) => {
+    notifyDashboardChanged()
+    return response
+  })
+}
+
+export function deleteEspacio(espacioId) {
+  return apiRequest(`/espacios/${espacioId}`, {
+    method: 'DELETE',
+  }).then((response) => {
+    notifyDashboardChanged()
+    return response
+  })
+}
 
 export function getEspaciosDisponibilidad(fecha, horaInicio, horaFin, pisoId) {
   let url = `/espacios/disponibilidad?fecha=${fecha}&horaInicio=${horaInicio}&horaFin=${horaFin}`
