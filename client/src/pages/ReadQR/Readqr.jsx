@@ -102,13 +102,9 @@ export default function ReadQRPage() {
         {
           fps: 10,
 
-          qrbox: (w, h) => {
-            const size = Math.min(w, h) * 0.75
-
-            return {
-              width: size,
-              height: size
-            }
+          qrbox: {
+            width: 150,
+            height: 250
           }
         },
 
