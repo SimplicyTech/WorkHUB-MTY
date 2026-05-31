@@ -165,6 +165,12 @@ export default function FloorMap9({ desks, salas = [], rooms, selectedDesk, onSe
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded bg-[#77707f]" />
+                <span className="font-mono text-text-muted" style={{ fontSize: 8 }}>
+                  Bloqueado
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded bg-primary" />
                 <span className="font-mono text-text-muted" style={{ fontSize: 8 }}>
                   Selección
