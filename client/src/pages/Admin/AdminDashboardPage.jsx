@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useDashboard } from '../../context/useDashboard'
 import { useAuth } from '../../context/useAuth'
-import { getAllEmpleados, getAllReservaciones, createEmpleado, deleteEmpleado, getAllEspacios, createEspacio, updateEspacioEstado, getPisos, getEventos, createEvento, deleteEvento } from '../../services/reservations'
+import { getAllEmpleados, getAllReservaciones, createEmpleado, deleteEmpleado, getAllEspacios, createEspacio, updateEspacioEstado, getPisos, getRoles, getEventos, createEvento, deleteEvento } from '../../services/reservations'
 import CustomDatePicker from '../../components/reserve/CustomDatePicker'
+import CustomTimePicker from '../../components/reserve/CustomTimePicker'
 import './AdminDashboard.css'
 
 const sidebarItems = [
@@ -599,6 +600,7 @@ function UsuariosView() {
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
   const [filtroRol, setFiltroRol] = useState('todos')
+  const [roles, setRoles] = useState([])
 
   // Modal state
   const [showModal, setShowModal] = useState(false)
@@ -618,14 +620,12 @@ function UsuariosView() {
   }
 
   useEffect(() => { cargarEmpleados() }, [])
+  useEffect(() => {
+    getRoles().then((res) => setRoles(res.data || [])).catch(() => {})
+  }, [])
 
-  const ROL_MAP = {
-    1: 'Empleado',
-    2: 'Administrador de Facilities',
-    3: 'Visitante',
-    4: 'Administrador del Sistema',
-    5: 'Guardia',
-  }
+  // Nombre del rol leído de la BD (tabla ROL), no hardcodeado.
+  const rolNombre = (rolId) => roles.find((r) => Number(r.RolID) === Number(rolId))?.Nombre || `Rol ${rolId}`
 
   const filtrados = empleados.filter((u) => {
     const nombre = (u.Nombre || '').toLowerCase()
@@ -710,11 +710,9 @@ function UsuariosView() {
         </label>
         <select className="admin-select" value={filtroRol} onChange={(e) => setFiltroRol(e.target.value)}>
           <option value="todos">Rol: Todos</option>
-          <option value="1">Empleado</option>
-          <option value="2">Administrador de Facilities</option>
-          <option value="3">Visitante</option>
-          <option value="4">Administrador del Sistema</option>
-          <option value="5">Guardia</option>
+          {roles.map((r) => (
+            <option key={r.RolID} value={String(r.RolID)}>{r.Nombre}</option>
+          ))}
         </select>
       </section>
 
@@ -746,7 +744,7 @@ function UsuariosView() {
                         u.RolID === 2 ? 'admin-badge--yellow' :
                         'admin-badge--ok'
                       }`}>
-                        {ROL_MAP[u.RolID] || `Rol ${u.RolID}`}
+                        {rolNombre(u.RolID)}
                       </span>
                     </td>
                     <td>{u.Puntos ?? 0}</td>
@@ -803,11 +801,9 @@ function UsuariosView() {
               <label className="admin-modal__label">
                 Rol
                 <select className="admin-modal__input admin-modal__select" name="RolID" value={form.RolID} onChange={handleFormChange}>
-                  <option value="1">Empleado</option>
-                  <option value="2">Administrador de Facilities</option>
-                  <option value="3">Visitante</option>
-                  <option value="4">Administrador del Sistema</option>
-                  <option value="5">Guardia</option>
+                  {roles.map((r) => (
+                    <option key={r.RolID} value={String(r.RolID)}>{r.Nombre}</option>
+                  ))}
                 </select>
               </label>
               {formError && <p className="admin-modal__error">{formError}</p>}
@@ -1019,10 +1015,12 @@ function EventosView() {
   const hoyStr = new Date().toISOString().slice(0, 10)
   const [form, setForm] = useState({
     Nombre: '',
-    Descripcion: '',
     Motivo: '',
     FechaInicio: hoyStr,
     FechaFin: hoyStr,
+    todoElDia: true,
+    HoraInicio: '09:00',
+    HoraFin: '14:00',
     PisoID: String(PISO_ADMIN_FUNCIONAL_ID),
     bloquearPisoCompleto: true,
     EspacioIDs: [],
@@ -1068,7 +1066,15 @@ function EventosView() {
 
   const today = new Date().toISOString().slice(0, 10)
   const totalEspacios = eventos.reduce((acc, e) => acc + Number(e.EspaciosBloqueados || 0), 0)
-  const vigentes = eventos.filter((e) => (e.FechaFin ? String(e.FechaFin).slice(0, 10) >= today : false)).length
+  const vigentes = eventos.filter((e) => e.Estatus !== 'Cancelado' && (e.FechaFin ? String(e.FechaFin).slice(0, 10) >= today : false)).length
+
+  // Estado mostrado: Cancelado (borrado lógico), Finalizado (su fecha fin ya
+  // pasó) o Activo (vigente). Finalizado/Activo se derivan, no se guardan.
+  const estadoEvento = (e) => {
+    if (e.Estatus === 'Cancelado') return 'Cancelado'
+    if (e.FechaFin && String(e.FechaFin).slice(0, 10) < today) return 'Finalizado'
+    return 'Activo'
+  }
 
   const filtrados = eventos.filter((e) => {
     const nombre = (e.Nombre || '').toLowerCase()
@@ -1110,15 +1116,16 @@ function EventosView() {
     try {
       await createEvento({
         Nombre: form.Nombre,
-        Descripcion: form.Descripcion || null,
         Motivo: form.Motivo || null,
         FechaInicio: form.FechaInicio,
         FechaFin: form.FechaFin,
+        HoraInicio: form.todoElDia ? null : form.HoraInicio,
+        HoraFin: form.todoElDia ? null : form.HoraFin,
         PisoID: form.bloquearPisoCompleto ? Number(form.PisoID) : undefined,
         EspacioIDs: form.bloquearPisoCompleto ? undefined : form.EspacioIDs,
       })
       setShowModal(false)
-      setForm((f) => ({ ...f, Nombre: '', Descripcion: '', Motivo: '', EspacioIDs: [] }))
+      setForm((f) => ({ ...f, Nombre: '', Motivo: '', EspacioIDs: [] }))
       await cargarEventos()
     } catch (err) {
       setFormError(err?.error || 'Error al crear el evento')
@@ -1133,11 +1140,10 @@ function EventosView() {
     setDeleteError(null)
     try {
       await deleteEvento(eventoToDelete.EventoID)
-      setEventos((actuales) => actuales.filter((e) => e.EventoID !== eventoToDelete.EventoID))
       setEventoToDelete(null)
       await cargarEventos()
     } catch (err) {
-      setDeleteError(err?.error || 'No se pudo eliminar el evento')
+      setDeleteError(err?.error || 'No se pudo cancelar el evento')
     } finally {
       setDeleting(false)
     }
@@ -1148,6 +1154,7 @@ function EventosView() {
     const d = new Date(f)
     return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`
   }
+  const fmtHora = (h) => (h ? String(h).slice(0, 5) : '')
 
   return (
     <main className="admin-main admin-main--management">
@@ -1203,35 +1210,48 @@ function EventosView() {
                   <th>Motivo</th>
                   <th>Desde</th>
                   <th>Hasta</th>
+                  <th>Horario</th>
                   <th>Espacios</th>
+                  <th>Estatus</th>
                   <th>Organizador</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {filtrados.map((e) => (
+                {filtrados.map((e) => {
+                  const estado = estadoEvento(e)
+                  return (
                   <tr key={e.EventoID}>
                     <td>{e.Nombre}</td>
                     <td style={{ color: 'var(--admin-muted)' }}>{e.Motivo || '—'}</td>
                     <td>{fmtFecha(e.FechaInicio)}</td>
                     <td>{fmtFecha(e.FechaFin)}</td>
+                    <td style={{ color: 'var(--admin-muted)', fontSize: '0.82rem' }}>{e.HoraInicio && e.HoraFin ? `${fmtHora(e.HoraInicio)}–${fmtHora(e.HoraFin)}` : 'Todo el día'}</td>
                     <td><span className="admin-badge admin-badge--yellow">{e.EspaciosBloqueados ?? 0}</span></td>
+                    <td>
+                      <span className={`admin-badge ${estado === 'Activo' ? 'admin-badge--ok' : estado === 'Cancelado' ? 'admin-badge--rose' : 'admin-badge--arch'}`}>{estado}</span>
+                    </td>
                     <td style={{ color: 'var(--admin-muted)' }}>{e.OrganizadorNombre || e.EmpleadoID || '—'}</td>
                     <td>
-                      <button
-                        type="button"
-                        className="admin-btn-danger-sm admin-btn-danger-sm--icon"
-                        onClick={() => { setEventoToDelete(e); setDeleteError(null) }}
-                        aria-label={`Eliminar evento ${e.Nombre}`}
-                      >
-                        <AdminIcon name="trash" />
-                        Eliminar
-                      </button>
+                      {e.Estatus === 'Cancelado' ? (
+                        <span style={{ color: 'var(--admin-muted)', fontSize: '0.8rem' }}>—</span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="admin-btn-danger-sm admin-btn-danger-sm--icon"
+                          onClick={() => { setEventoToDelete(e); setDeleteError(null) }}
+                          aria-label={`Cancelar evento ${e.Nombre}`}
+                        >
+                          <AdminIcon name="trash" />
+                          Cancelar
+                        </button>
+                      )}
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
                 {filtrados.length === 0 && (
-                  <tr><td colSpan={7} className="admin-table-msg">Sin eventos registrados</td></tr>
+                  <tr><td colSpan={9} className="admin-table-msg">Sin eventos registrados</td></tr>
                 )}
               </tbody>
             </table>
@@ -1261,10 +1281,6 @@ function EventosView() {
                 Motivo
                 <input className="admin-modal__input" name="Motivo" value={form.Motivo} onChange={handleFormChange} placeholder="Ej. Evento corporativo" />
               </label>
-              <label className="admin-modal__label">
-                Descripción
-                <input className="admin-modal__input" name="Descripcion" value={form.Descripcion} onChange={handleFormChange} placeholder="Opcional" />
-              </label>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <label className="admin-modal__label" style={{ flex: 1 }}>
                   Desde
@@ -1287,6 +1303,36 @@ function EventosView() {
                   />
                 </label>
               </div>
+              <label className="admin-check" style={{ marginTop: '0.2rem' }}>
+                <input type="checkbox" name="todoElDia" checked={form.todoElDia} onChange={handleFormChange} />
+                <span className="admin-check__box">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4 10-10" /></svg>
+                </span>
+                <span className="admin-check__text">Todo el día</span>
+              </label>
+              {!form.todoElDia && (
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <label className="admin-modal__label" style={{ flex: 1 }}>
+                    Hora inicio
+                    <CustomTimePicker
+                      value={form.HoraInicio}
+                      onChange={(hhmm) => setForm((f) => ({
+                        ...f,
+                        HoraInicio: hhmm,
+                        HoraFin: f.HoraFin <= hhmm ? hhmm : f.HoraFin,
+                      }))}
+                    />
+                  </label>
+                  <label className="admin-modal__label" style={{ flex: 1 }}>
+                    Hora fin
+                    <CustomTimePicker
+                      value={form.HoraFin}
+                      min={form.HoraInicio}
+                      onChange={(hhmm) => setForm((f) => ({ ...f, HoraFin: hhmm }))}
+                    />
+                  </label>
+                </div>
+              )}
               <label className="admin-modal__label">
                 Piso a bloquear
                 <div className="relative">
@@ -1349,19 +1395,19 @@ function EventosView() {
         <div className="admin-modal-overlay" onClick={() => !deleting && setEventoToDelete(null)}>
           <div className="admin-modal admin-modal--confirm" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal__header">
-              <h2>Eliminar evento</h2>
+              <h2>Cancelar evento</h2>
               <button type="button" className="admin-modal__close" onClick={() => !deleting && setEventoToDelete(null)} disabled={deleting}>✕</button>
             </div>
             <div className="admin-confirm">
-              <p className="admin-confirm__title">¿Eliminar este evento?</p>
+              <p className="admin-confirm__title">¿Cancelar este evento?</p>
               <p className="admin-confirm__body">
-                Se eliminará <strong>{eventoToDelete.Nombre}</strong> y se liberarán los {eventoToDelete.EspaciosBloqueados ?? 0} espacio(s) que tenía bloqueados.
+                Se liberarán los {eventoToDelete.EspaciosBloqueados ?? 0} espacio(s) que <strong>{eventoToDelete.Nombre}</strong> tenía bloqueados. El evento se conserva en el historial marcado como <strong>Cancelado</strong>.
               </p>
               {deleteError && <p className="admin-modal__error">{deleteError}</p>}
               <div className="admin-modal__actions">
-                <button type="button" className="admin-btn-export" onClick={() => setEventoToDelete(null)} disabled={deleting}>Cancelar</button>
+                <button type="button" className="admin-btn-export" onClick={() => setEventoToDelete(null)} disabled={deleting}>Volver</button>
                 <button type="button" className="admin-btn-danger" onClick={handleDelete} disabled={deleting}>
-                  {deleting ? 'Eliminando…' : 'Eliminar evento'}
+                  {deleting ? 'Cancelando…' : 'Cancelar evento'}
                 </button>
               </div>
             </div>
@@ -1468,8 +1514,13 @@ function PrediccionIAView() {
 
 export default function AdminDashboardPage() {
   const [activePage, setActivePage] = useState('Dashboard')
+  const [roles, setRoles] = useState([])
   const { user } = useAuth()
   const { dashboard, loading, error } = useDashboard()
+
+  useEffect(() => {
+    getRoles().then((res) => setRoles(res.data || [])).catch(() => {})
+  }, [])
 
   if (!user) {
     return <Navigate to="/login" replace />
@@ -1624,7 +1675,7 @@ export default function AdminDashboardPage() {
           <div>
             <strong>{user?.name || 'Usuario'}</strong>
             <span>{
-              ({ 1: 'Empleado', 2: 'Admin Facilities', 3: 'Visitante', 4: 'Admin Sistema', 5: 'Guardia' })[user?.rolId] || 'Administrador'
+              roles.find((r) => Number(r.RolID) === Number(user?.rolId))?.Nombre || 'Administrador'
             }</span>
           </div>
         </div>

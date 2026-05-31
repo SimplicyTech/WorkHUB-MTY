@@ -88,16 +88,22 @@ export function getPisos() {
   return apiRequest('/pisos')
 }
 
+// ── Roles ─────────────────────────────────────────────────
+
+export function getRoles() {
+  return apiRequest('/roles')
+}
+
 // ── Eventos (Admin) ───────────────────────────────────────
 
 export function getEventos() {
   return apiRequest('/eventos')
 }
 
-export function createEvento({ Nombre, Descripcion, Motivo, FechaInicio, FechaFin, PisoID, EspacioIDs }) {
+export function createEvento({ Nombre, Motivo, FechaInicio, FechaFin, HoraInicio, HoraFin, PisoID, EspacioIDs }) {
   return apiRequest('/eventos', {
     method: 'POST',
-    body: { Nombre, Descripcion, Motivo, FechaInicio, FechaFin, PisoID, EspacioIDs },
+    body: { Nombre, Motivo, FechaInicio, FechaFin, HoraInicio, HoraFin, PisoID, EspacioIDs },
   }).then((response) => {
     notifyDashboardChanged()
     return response
