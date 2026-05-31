@@ -88,6 +88,31 @@ export function getPisos() {
   return apiRequest('/pisos')
 }
 
+// ── Eventos (Admin) ───────────────────────────────────────
+
+export function getEventos() {
+  return apiRequest('/eventos')
+}
+
+export function createEvento({ Nombre, Descripcion, Motivo, FechaInicio, FechaFin, PisoID, EspacioIDs }) {
+  return apiRequest('/eventos', {
+    method: 'POST',
+    body: { Nombre, Descripcion, Motivo, FechaInicio, FechaFin, PisoID, EspacioIDs },
+  }).then((response) => {
+    notifyDashboardChanged()
+    return response
+  })
+}
+
+export function deleteEvento(eventoId) {
+  return apiRequest(`/eventos/${eventoId}`, {
+    method: 'DELETE',
+  }).then((response) => {
+    notifyDashboardChanged()
+    return response
+  })
+}
+
 // ── Reservaciones ─────────────────────────────────────────
 
 export function getReservacionesByEmpleado(empleadoId) {

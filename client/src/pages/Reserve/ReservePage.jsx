@@ -9,14 +9,18 @@ function normalizeName(nombre) {
   return String(nombre || '').trim().toUpperCase()
 }
 
-function mapEstadoToStatus(estado) {
-  const value = String(estado || '').trim().toLowerCase()
-  if (['ocupado', 'reservado', 'no disponible', 'indisponible', 'inactivo', 'blocked'].includes(value)) {
-    return 'occupied'
+function mapEstadoToStatus(espacio) {
+  // El endpoint de disponibilidad ya entrega `status` calculado
+  // ('blocked' | 'occupied' | 'available'), derivado de bloqueos (manual y de
+  // evento, por rango de fecha) y reservaciones. Lo usamos directo.
+  const status = String(espacio?.status || '').trim().toLowerCase()
+  if (status === 'blocked' || status === 'occupied' || status === 'available') {
+    return status
   }
-  if (['activo', 'disponible', 'available', 'free'].includes(value)) {
-    return 'available'
-  }
+  // Fallback si solo viene `Estado` (ej. otros endpoints sin `status`).
+  const estado = String(espacio?.Estado || '').trim().toLowerCase()
+  if (['bloqueado', 'blocked'].includes(estado)) return 'blocked'
+  if (['ocupado', 'reservado', 'no disponible', 'indisponible', 'inactivo'].includes(estado)) return 'occupied'
   return 'available'
 }
 
@@ -35,7 +39,7 @@ function mapEspaciosToDesks(espacios) {
         id: name,
         espacioID: e.EspacioID,
         cluster: getCluster(name),
-        status: mapEstadoToStatus(e.Estado || e.status),
+        status: mapEstadoToStatus(e),
       }
     })
 }
@@ -49,7 +53,7 @@ function mapEspaciosToSalas(espacios) {
     .map((e) => ({
       id: String(e.Nombre || '').trim(),
       espacioID: e.EspacioID,
-      status: mapEstadoToStatus(e.Estado || e.status),
+      status: mapEstadoToStatus(e),
     }))
 }
 

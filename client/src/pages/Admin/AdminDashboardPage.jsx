@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useDashboard } from '../../context/useDashboard'
 import { useAuth } from '../../context/useAuth'
-import { getAllEmpleados, getAllReservaciones, createEmpleado, deleteEmpleado, getAllEspacios, createEspacio, updateEspacioEstado, deleteEspacio, getPisos } from '../../services/reservations'
+import { getAllEmpleados, getAllReservaciones, createEmpleado, deleteEmpleado, getAllEspacios, createEspacio, updateEspacioEstado, getPisos, getEventos, createEvento, deleteEvento } from '../../services/reservations'
+import CustomDatePicker from '../../components/reserve/CustomDatePicker'
 import './AdminDashboard.css'
 
 const sidebarItems = [
@@ -347,9 +348,6 @@ function ReportesView() {
         </article>
       </section>
 
-      <button type="button" className="admin-fab" aria-label="Abrir soporte">
-        <AdminIcon name="message" />
-      </button>
     </main>
   )
 }
@@ -371,9 +369,6 @@ function EspaciosView() {
   const [form, setForm] = useState({ Nombre: '', Tipo: 'Escritorio', PisoID: '' })
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState(null)
-  const [spaceToDelete, setSpaceToDelete] = useState(null)
-  const [deletingSpace, setDeletingSpace] = useState(false)
-  const [deleteSpaceError, setDeleteSpaceError] = useState(null)
 
   const cargarPisos = async () => {
     setLoadingPisos(true)
@@ -460,33 +455,6 @@ function EspaciosView() {
     }
   }
 
-  const openDeleteSpaceModal = (espacio) => {
-    setSpaceToDelete(espacio)
-    setDeleteSpaceError(null)
-  }
-
-  const closeDeleteSpaceModal = () => {
-    if (deletingSpace) return
-    setSpaceToDelete(null)
-    setDeleteSpaceError(null)
-  }
-
-  const handleDeleteSpace = async () => {
-    if (!spaceToDelete) return
-    setDeletingSpace(true)
-    setDeleteSpaceError(null)
-    try {
-      await deleteEspacio(spaceToDelete.EspacioID)
-      setEspacios((actuales) => actuales.filter((e) => e.EspacioID !== spaceToDelete.EspacioID))
-      setSpaceToDelete(null)
-      await cargarEspacios()
-    } catch (err) {
-      setDeleteSpaceError(err?.error || 'No se pudo eliminar el espacio')
-    } finally {
-      setDeletingSpace(false)
-    }
-  }
-
   const tiposUnicos = [...new Set(espacios.map(e => e.Tipo))].filter(Boolean)
 
   return (
@@ -495,12 +463,6 @@ function EspaciosView() {
         <div>
           <span className="admin-main__eyebrow">// gestión espacios</span>
           <h1>GESTION DE ESPACIOS</h1>
-        </div>
-        <div className="admin-main__actions">
-          <button type="button" className="admin-btn-export admin-btn-export--primary" onClick={() => setShowModal(true)}>
-            <AdminIcon name="plusBox" />
-            Agregar Espacio
-          </button>
         </div>
       </header>
 
@@ -516,8 +478,8 @@ function EspaciosView() {
         <select className="admin-select" value={filtroPiso} onChange={e => setFiltroPiso(e.target.value)}>
           <option value="">{loadingPisos ? 'Cargando pisos...' : 'Selecciona piso'}</option>
           {pisos.map(p => (
-            <option key={p.PisoID} value={String(p.PisoID)} disabled={p.PisoID !== PISO_ADMIN_FUNCIONAL_ID}>
-              {p.Nombre}{p.PisoID === PISO_ADMIN_FUNCIONAL_ID ? '' : ' — Próximamente'}
+            <option key={p.PisoID} value={String(p.PisoID)}>
+              {p.Nombre}
             </option>
           ))}
         </select>
@@ -561,15 +523,6 @@ function EspaciosView() {
                       </td>
                       <td>
                         <div className="admin-table-actions">
-                          <button
-                            type="button"
-                            className="admin-btn-danger-sm admin-btn-danger-sm--icon"
-                            onClick={() => openDeleteSpaceModal(e)}
-                            aria-label={`Eliminar espacio ${e.Nombre}`}
-                          >
-                            <AdminIcon name="trash" />
-                            Eliminar
-                          </button>
                           <button type="button" className={estadoActual === 'Activo' ? 'admin-btn-danger-sm' : 'admin-btn-ghost-sm'} onClick={() => toggleEstado(e)}>
                             {estadoActual === 'Activo' ? 'Bloquear' : 'Activar'}
                           </button>
@@ -635,33 +588,6 @@ function EspaciosView() {
         </div>
       )}
 
-      {spaceToDelete && (
-        <div className="admin-modal-overlay" onClick={closeDeleteSpaceModal}>
-          <div className="admin-modal admin-modal--confirm" onClick={(e) => e.stopPropagation()}>
-            <div className="admin-modal__header">
-              <h2>Confirmar eliminación</h2>
-              <button type="button" className="admin-modal__close" onClick={closeDeleteSpaceModal} disabled={deletingSpace}>✕</button>
-            </div>
-            <div className="admin-confirm">
-              <p className="admin-confirm__title">¿Estás seguro que quieres eliminar este espacio?</p>
-              <p className="admin-confirm__body">
-                Se eliminará <strong>{spaceToDelete.Nombre}</strong> de la base de datos junto con sus reservaciones y bloqueos relacionados.
-              </p>
-              {deleteSpaceError && <p className="admin-modal__error">{deleteSpaceError}</p>}
-              <div className="admin-modal__actions">
-                <button type="button" className="admin-btn-export" onClick={closeDeleteSpaceModal} disabled={deletingSpace}>Cancelar</button>
-                <button type="button" className="admin-btn-danger" onClick={handleDeleteSpace} disabled={deletingSpace}>
-                  {deletingSpace ? 'Eliminando…' : 'Eliminar espacio'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <button type="button" className="admin-fab" aria-label="Abrir soporte">
-        <AdminIcon name="message" />
-      </button>
     </main>
   )
 }
@@ -920,9 +846,6 @@ function UsuariosView() {
         </div>
       )}
 
-      <button type="button" className="admin-fab" aria-label="Abrir soporte">
-        <AdminIcon name="message" />
-      </button>
     </main>
   )
 }
@@ -1079,71 +1002,151 @@ function VisitasView() {
         )}
       </section>
 
-      <button type="button" className="admin-fab" aria-label="Abrir soporte">
-        <AdminIcon name="message" />
-      </button>
     </main>
   )
 }
 
-// ── Eventos data ──────────────────────────────────────────
+// ── Eventos (bloqueo masivo de espacios) ──────────────────
 function EventosView() {
-  const [reservaciones, setReservaciones] = useState([])
+  const [eventos, setEventos] = useState([])
+  const [pisos, setPisos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
-  const [filtroEstatus, setFiltroEstatus] = useState('todos')
 
+  // Modal crear
+  const [showModal, setShowModal] = useState(false)
+  const hoyStr = new Date().toISOString().slice(0, 10)
+  const [form, setForm] = useState({
+    Nombre: '',
+    Descripcion: '',
+    Motivo: '',
+    FechaInicio: hoyStr,
+    FechaFin: hoyStr,
+    PisoID: String(PISO_ADMIN_FUNCIONAL_ID),
+    bloquearPisoCompleto: true,
+    EspacioIDs: [],
+  })
+  const [espaciosPiso, setEspaciosPiso] = useState([])
+  const [loadingEspacios, setLoadingEspacios] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState(null)
+
+  // Eliminar
+  const [eventoToDelete, setEventoToDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
+
+  const cargarEventos = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await getEventos()
+      setEventos(res.data || [])
+    } catch {
+      setError('No se pudieron cargar los eventos')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { cargarEventos() }, [])
+  useEffect(() => { getPisos().then((res) => setPisos(res.data || [])).catch(() => {}) }, [])
+
+  // Cuando NO se bloquea el piso completo, cargamos sus espacios para elegir.
   useEffect(() => {
-    getAllReservaciones()
-      .then((res) => setReservaciones(res.data || []))
-      .catch(() => setError('No se pudo cargar los eventos'))
-      .finally(() => setLoading(false))
-  }, [])
+    if (form.bloquearPisoCompleto || !form.PisoID) {
+      setEspaciosPiso([])
+      return
+    }
+    setLoadingEspacios(true)
+    getAllEspacios(form.PisoID)
+      .then((res) => setEspaciosPiso(res.data || []))
+      .catch(() => setEspaciosPiso([]))
+      .finally(() => setLoadingEspacios(false))
+  }, [form.PisoID, form.bloquearPisoCompleto])
 
   const today = new Date().toISOString().slice(0, 10)
+  const totalEspacios = eventos.reduce((acc, e) => acc + Number(e.EspaciosBloqueados || 0), 0)
+  const vigentes = eventos.filter((e) => (e.FechaFin ? String(e.FechaFin).slice(0, 10) >= today : false)).length
 
-  const activos = reservaciones.filter((r) => {
-    const fecha = r.Fecha ? String(r.Fecha).slice(0, 10) : ''
-    return fecha === today && r.EstatusNombre === 'Activa'
-  }).length
-
-  const proximos7 = reservaciones.filter((r) => {
-    const fecha = r.Fecha ? String(r.Fecha).slice(0, 10) : ''
-    const limite = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-    return fecha > today && fecha <= limite
-  }).length
-
-  const totalParticipantes = reservaciones.filter((r) => {
-    const fecha = r.Fecha ? String(r.Fecha).slice(0, 10) : ''
-    return fecha >= today && r.EstatusNombre === 'Activa'
-  }).length
-
-  // Mostrar reservaciones de hoy en adelante como "eventos"
-  const eventos = reservaciones.filter((r) => {
-    const fecha = r.Fecha ? String(r.Fecha).slice(0, 10) : ''
-    return fecha >= today
+  const filtrados = eventos.filter((e) => {
+    const nombre = (e.Nombre || '').toLowerCase()
+    const motivo = (e.Motivo || '').toLowerCase()
+    return nombre.includes(search.toLowerCase()) || motivo.includes(search.toLowerCase())
   })
 
-  const filtrados = eventos.filter((r) => {
-    const nombre = (r.EmpleadoNombre || '').toLowerCase()
-    const espacio = (r.EspacioNombre || '').toLowerCase()
-    const coincide = nombre.includes(search.toLowerCase()) || espacio.includes(search.toLowerCase())
-    const coincideEstatus = filtroEstatus === 'todos' || (r.EstatusNombre || '') === filtroEstatus
-    return coincide && coincideEstatus
-  })
+  const handleFormChange = (e) => {
+    const { name, value, type, checked } = e.target
+    setForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }))
+  }
 
-  const fmtHora = (h) => (h ? String(h).slice(0, 5) : '—')
+  const toggleEspacio = (espacioId) => {
+    setForm((f) => {
+      const exists = f.EspacioIDs.includes(espacioId)
+      return {
+        ...f,
+        EspacioIDs: exists ? f.EspacioIDs.filter((id) => id !== espacioId) : [...f.EspacioIDs, espacioId],
+      }
+    })
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setFormError(null)
+    if (!form.Nombre || !form.FechaInicio || !form.FechaFin) {
+      setFormError('Nombre, fecha de inicio y fecha de fin son obligatorios')
+      return
+    }
+    if (form.FechaFin < form.FechaInicio) {
+      setFormError('La fecha de fin no puede ser anterior a la de inicio')
+      return
+    }
+    if (!form.bloquearPisoCompleto && form.EspacioIDs.length === 0) {
+      setFormError('Selecciona al menos un espacio o activa "Bloquear piso completo"')
+      return
+    }
+    setSaving(true)
+    try {
+      await createEvento({
+        Nombre: form.Nombre,
+        Descripcion: form.Descripcion || null,
+        Motivo: form.Motivo || null,
+        FechaInicio: form.FechaInicio,
+        FechaFin: form.FechaFin,
+        PisoID: form.bloquearPisoCompleto ? Number(form.PisoID) : undefined,
+        EspacioIDs: form.bloquearPisoCompleto ? undefined : form.EspacioIDs,
+      })
+      setShowModal(false)
+      setForm((f) => ({ ...f, Nombre: '', Descripcion: '', Motivo: '', EspacioIDs: [] }))
+      await cargarEventos()
+    } catch (err) {
+      setFormError(err?.error || 'Error al crear el evento')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!eventoToDelete) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteEvento(eventoToDelete.EventoID)
+      setEventos((actuales) => actuales.filter((e) => e.EventoID !== eventoToDelete.EventoID))
+      setEventoToDelete(null)
+      await cargarEventos()
+    } catch (err) {
+      setDeleteError(err?.error || 'No se pudo eliminar el evento')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const fmtFecha = (f) => {
     if (!f) return '—'
     const d = new Date(f)
     return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`
-  }
-
-  const dotColor = (estatus) => {
-    if (estatus === 'Activa') return '#12e0a4'
-    if (estatus === 'Cancelada') return '#ff3153'
-    return '#ffe93b'
   }
 
   return (
@@ -1154,7 +1157,7 @@ function EventosView() {
           <h1>GESTIÓN DE EVENTOS</h1>
         </div>
         <div className="admin-main__actions">
-          <button type="button" className="admin-btn-export admin-btn-export--primary">
+          <button type="button" className="admin-btn-export admin-btn-export--primary" onClick={() => setShowModal(true)}>
             <AdminIcon name="plusBox" />
             Nuevo Evento
           </button>
@@ -1163,16 +1166,16 @@ function EventosView() {
 
       <section className="admin-visitas-stats">
         <article className="admin-visitas-stat">
-          <span className="admin-visitas-stat__label">Eventos Activos</span>
-          <strong className="admin-visitas-stat__value" style={{ color: '#12e0a4' }}>{loading ? '…' : activos}</strong>
+          <span className="admin-visitas-stat__label">Eventos Registrados</span>
+          <strong className="admin-visitas-stat__value" style={{ color: '#f5efff' }}>{loading ? '…' : eventos.length}</strong>
         </article>
         <article className="admin-visitas-stat">
-          <span className="admin-visitas-stat__label">Próximos 7 días</span>
-          <strong className="admin-visitas-stat__value" style={{ color: '#12e0a4' }}>{loading ? '…' : proximos7}</strong>
+          <span className="admin-visitas-stat__label">Vigentes / Próximos</span>
+          <strong className="admin-visitas-stat__value" style={{ color: '#12e0a4' }}>{loading ? '…' : vigentes}</strong>
         </article>
         <article className="admin-visitas-stat">
-          <span className="admin-visitas-stat__label">Participantes Registrados</span>
-          <strong className="admin-visitas-stat__value" style={{ color: '#b100ff' }}>{loading ? '…' : totalParticipantes}</strong>
+          <span className="admin-visitas-stat__label">Espacios Bloqueados</span>
+          <strong className="admin-visitas-stat__value" style={{ color: '#b100ff' }}>{loading ? '…' : totalEspacios}</strong>
         </article>
       </section>
 
@@ -1181,16 +1184,11 @@ function EventosView() {
           <AdminIcon name="search" />
           <input
             type="search"
-            placeholder="Buscar por empleado o espacio..."
+            placeholder="Buscar por nombre o motivo..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </label>
-        <select className="admin-select" value={filtroEstatus} onChange={(e) => setFiltroEstatus(e.target.value)}>
-          <option value="todos">Estado: Todos</option>
-          <option value="Activa">Activa</option>
-          <option value="Cancelada">Cancelada</option>
-        </select>
       </section>
 
       <section className="admin-card admin-card--management-table" style={{ marginTop: '1rem' }}>
@@ -1201,43 +1199,39 @@ function EventosView() {
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Empleado</th>
-                  <th>Espacio</th>
-                  <th>Fecha</th>
-                  <th>Hora</th>
-                  <th>Estado</th>
+                  <th>Evento</th>
+                  <th>Motivo</th>
+                  <th>Desde</th>
+                  <th>Hasta</th>
+                  <th>Espacios</th>
+                  <th>Organizador</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {filtrados.map((r) => (
-                  <tr key={r.ReservacionID}>
+                {filtrados.map((e) => (
+                  <tr key={e.EventoID}>
+                    <td>{e.Nombre}</td>
+                    <td style={{ color: 'var(--admin-muted)' }}>{e.Motivo || '—'}</td>
+                    <td>{fmtFecha(e.FechaInicio)}</td>
+                    <td>{fmtFecha(e.FechaFin)}</td>
+                    <td><span className="admin-badge admin-badge--yellow">{e.EspaciosBloqueados ?? 0}</span></td>
+                    <td style={{ color: 'var(--admin-muted)' }}>{e.OrganizadorNombre || e.EmpleadoID || '—'}</td>
                     <td>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ width: '0.55rem', height: '0.55rem', borderRadius: '999px', background: dotColor(r.EstatusNombre), flexShrink: 0 }} />
-                        {r.EmpleadoNombre || '—'}
-                      </span>
-                    </td>
-                    <td style={{ color: 'var(--admin-muted)' }}>{r.EspacioNombre || '—'}</td>
-                    <td>{fmtFecha(r.Fecha)}</td>
-                    <td className="admin-table__mint">{fmtHora(r.HoraInicio)} – {fmtHora(r.HoraFin)}</td>
-                    <td>
-                      <span className={`admin-badge ${
-                        r.EstatusNombre === 'Activa' ? 'admin-badge--ok' :
-                        r.EstatusNombre === 'Cancelada' ? 'admin-badge--rose' :
-                        'admin-badge--arch'
-                      }`}>{r.EstatusNombre || '—'}</span>
-                    </td>
-                    <td>
-                      <div className="admin-table-actions">
-                        <button type="button" className="admin-btn-ghost-sm">Editar</button>
-                        <button type="button" className="admin-btn-danger-sm">Cancelar</button>
-                      </div>
+                      <button
+                        type="button"
+                        className="admin-btn-danger-sm admin-btn-danger-sm--icon"
+                        onClick={() => { setEventoToDelete(e); setDeleteError(null) }}
+                        aria-label={`Eliminar evento ${e.Nombre}`}
+                      >
+                        <AdminIcon name="trash" />
+                        Eliminar
+                      </button>
                     </td>
                   </tr>
                 ))}
                 {filtrados.length === 0 && (
-                  <tr><td colSpan={6} className="admin-table-msg">Sin eventos próximos</td></tr>
+                  <tr><td colSpan={7} className="admin-table-msg">Sin eventos registrados</td></tr>
                 )}
               </tbody>
             </table>
@@ -1250,9 +1244,131 @@ function EventosView() {
         )}
       </section>
 
-      <button type="button" className="admin-fab" aria-label="Abrir soporte">
-        <AdminIcon name="message" />
-      </button>
+      {/* ── Modal Nuevo Evento ── */}
+      {showModal && (
+        <div className="admin-modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="admin-modal" style={{ overflow: 'visible' }} onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal__header">
+              <h2>Nuevo Evento</h2>
+              <button type="button" className="admin-modal__close" onClick={() => setShowModal(false)}>✕</button>
+            </div>
+            <form className="admin-modal__form" onSubmit={handleSubmit}>
+              <label className="admin-modal__label">
+                Nombre del evento
+                <input className="admin-modal__input" name="Nombre" value={form.Nombre} onChange={handleFormChange} placeholder="Ej. Hackathon Q2" />
+              </label>
+              <label className="admin-modal__label">
+                Motivo
+                <input className="admin-modal__input" name="Motivo" value={form.Motivo} onChange={handleFormChange} placeholder="Ej. Evento corporativo" />
+              </label>
+              <label className="admin-modal__label">
+                Descripción
+                <input className="admin-modal__input" name="Descripcion" value={form.Descripcion} onChange={handleFormChange} placeholder="Opcional" />
+              </label>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <label className="admin-modal__label" style={{ flex: 1 }}>
+                  Desde
+                  <CustomDatePicker
+                    value={form.FechaInicio}
+                    min={hoyStr}
+                    onChange={(iso) => setForm((f) => ({
+                      ...f,
+                      FechaInicio: iso,
+                      FechaFin: f.FechaFin && f.FechaFin < iso ? iso : f.FechaFin,
+                    }))}
+                  />
+                </label>
+                <label className="admin-modal__label" style={{ flex: 1 }}>
+                  Hasta
+                  <CustomDatePicker
+                    value={form.FechaFin}
+                    min={form.FechaInicio || hoyStr}
+                    onChange={(iso) => setForm((f) => ({ ...f, FechaFin: iso }))}
+                  />
+                </label>
+              </div>
+              <label className="admin-modal__label">
+                Piso a bloquear
+                <div className="relative">
+                  <select
+                    name="PisoID"
+                    value={form.PisoID}
+                    onChange={handleFormChange}
+                    className="w-full h-11 px-3 pr-8 rounded-lg bg-surface-badge font-mono text-[13px] text-white border-none outline-none cursor-pointer appearance-none [color-scheme:dark]"
+                  >
+                    {pisos.map((p) => (
+                      <option key={p.PisoID} value={String(p.PisoID)}>
+                        {p.Nombre}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none">▾</span>
+                </div>
+              </label>
+              <label className="admin-check" style={{ marginTop: '0.2rem' }}>
+                <input type="checkbox" name="bloquearPisoCompleto" checked={form.bloquearPisoCompleto} onChange={handleFormChange} />
+                <span className="admin-check__box">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4 10-10" /></svg>
+                </span>
+                <span className="admin-check__text">Bloquear piso completo</span>
+              </label>
+
+              {!form.bloquearPisoCompleto && (
+                <div className="admin-modal__label">
+                  Espacios a bloquear {loadingEspacios && '(cargando…)'}
+                  <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid rgba(161,0,255,0.25)', borderRadius: '8px', padding: '0.6rem', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.5rem' }}>
+                    {espaciosPiso.map((esp) => (
+                      <label key={esp.EspacioID} className="admin-check">
+                        <input type="checkbox" checked={form.EspacioIDs.includes(esp.EspacioID)} onChange={() => toggleEspacio(esp.EspacioID)} />
+                        <span className="admin-check__box">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4 10-10" /></svg>
+                        </span>
+                        <span className="admin-check__text" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{esp.Nombre}</span>
+                      </label>
+                    ))}
+                    {!loadingEspacios && espaciosPiso.length === 0 && <span style={{ color: 'var(--admin-muted)', fontSize: '0.82rem' }}>Sin espacios</span>}
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--admin-muted)' }}>{form.EspacioIDs.length} seleccionados</span>
+                </div>
+              )}
+
+              {formError && <p className="admin-modal__error" style={{ color: '#ff3246', fontSize: '0.85rem' }}>{formError}</p>}
+              <div className="admin-modal__actions">
+                <button type="button" className="admin-btn-export" onClick={() => setShowModal(false)}>Cancelar</button>
+                <button type="submit" className="admin-btn-export admin-btn-export--primary" disabled={saving}>
+                  {saving ? 'Creando…' : 'Crear Evento'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Eliminar Evento ── */}
+      {eventoToDelete && (
+        <div className="admin-modal-overlay" onClick={() => !deleting && setEventoToDelete(null)}>
+          <div className="admin-modal admin-modal--confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal__header">
+              <h2>Eliminar evento</h2>
+              <button type="button" className="admin-modal__close" onClick={() => !deleting && setEventoToDelete(null)} disabled={deleting}>✕</button>
+            </div>
+            <div className="admin-confirm">
+              <p className="admin-confirm__title">¿Eliminar este evento?</p>
+              <p className="admin-confirm__body">
+                Se eliminará <strong>{eventoToDelete.Nombre}</strong> y se liberarán los {eventoToDelete.EspaciosBloqueados ?? 0} espacio(s) que tenía bloqueados.
+              </p>
+              {deleteError && <p className="admin-modal__error">{deleteError}</p>}
+              <div className="admin-modal__actions">
+                <button type="button" className="admin-btn-export" onClick={() => setEventoToDelete(null)} disabled={deleting}>Cancelar</button>
+                <button type="button" className="admin-btn-danger" onClick={handleDelete} disabled={deleting}>
+                  {deleting ? 'Eliminando…' : 'Eliminar evento'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   )
 }
@@ -1346,9 +1462,6 @@ function PrediccionIAView() {
         </aside>
       </div>
 
-      <button type="button" className="admin-fab" aria-label="Abrir soporte">
-        <AdminIcon name="message" />
-      </button>
     </main>
   )
 }
