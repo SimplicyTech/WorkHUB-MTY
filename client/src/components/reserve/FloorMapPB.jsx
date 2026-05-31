@@ -150,7 +150,7 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
             className="absolute flex items-center justify-between"
             style={{ left: 0, top: 0, right: 0, height: 40, padding: '16px 24px' }}
           >
-            <span className="font-heading text-sm text-white font-semibold">Piso 9</span>
+            <span className="font-heading text-sm text-white font-semibold">Planta Baja</span>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded bg-accent" />
@@ -162,6 +162,12 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
                 <span className="w-2 h-2 rounded bg-[#ff3246]" />
                 <span className="font-mono text-text-muted" style={{ fontSize: 8 }}>
                   Ocupado
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded bg-[#77707f]" />
+                <span className="font-mono text-text-muted" style={{ fontSize: 8 }}>
+                  Bloqueado
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
