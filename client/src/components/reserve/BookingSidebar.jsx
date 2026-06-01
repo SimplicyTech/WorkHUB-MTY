@@ -141,6 +141,7 @@ export default function BookingSidebar({
     }
   }, [])
   const [reserveFor, setReserveFor] = useState('me')
+  const [visitor, setVisitor] = useState({ nombre: '', correo: '', empresa: '' })
   const [timeError, setTimeError] = useState('')
 
   // Notify parent whenever filters change so it can re-fetch availability
@@ -171,7 +172,7 @@ export default function BookingSidebar({
       return
     }
 
-    onReserve?.({ date, entryTime, exitTime, floor, reserveFor })
+    onReserve?.({ date, entryTime, exitTime, floor, reserveFor, visitor })
   }
 
   const handleEntryTimeChange = (value) => {
@@ -191,11 +192,15 @@ export default function BookingSidebar({
 
   const displayStats = stats || { available: 0, occupied: 0, blocked: 0, total: 0 }
   const isPastEntryToday = isToday(date) && getTimeMinutes(entryTime) < getNowMinutes()
+  const visitorDatosOk =
+    reserveFor !== 'visitor' ||
+    (visitor.nombre.trim().length > 0 && visitor.correo.trim().length > 0)
   const isValidTimeRange =
     isExitAfterEntry(entryTime, exitTime) &&
     hasMinDuration(entryTime, exitTime) &&
     !isPastEntryToday &&
-    !fechaBloqueada
+    !fechaBloqueada &&
+    visitorDatosOk
 
   return (
     <div className="w-full lg:w-[360px] lg:shrink-0 bg-surface flex flex-col lg:h-full">
@@ -239,6 +244,46 @@ export default function BookingSidebar({
             </button>
           </div>
         </div>
+
+        {/* Datos del visitante */}
+        {reserveFor === 'visitor' && (
+          <div className="flex flex-col gap-2 rounded-lg bg-surface-badge/40 p-3">
+            <div className="flex flex-col gap-1">
+              <label className="font-mono text-[10px] text-white font-semibold">
+                Nombre del visitante
+              </label>
+              <input
+                value={visitor.nombre}
+                onChange={(e) => setVisitor((v) => ({ ...v, nombre: e.target.value }))}
+                placeholder="Ej. Juan Pérez"
+                className="h-9 rounded-md bg-surface-badge px-3 font-mono text-[12px] text-white border-none outline-none placeholder:text-text-muted/60"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="font-mono text-[10px] text-white font-semibold">
+                Correo del visitante
+              </label>
+              <input
+                type="email"
+                value={visitor.correo}
+                onChange={(e) => setVisitor((v) => ({ ...v, correo: e.target.value }))}
+                placeholder="visitante@correo.com"
+                className="h-9 rounded-md bg-surface-badge px-3 font-mono text-[12px] text-white border-none outline-none placeholder:text-text-muted/60"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="font-mono text-[10px] text-white font-semibold">
+                Empresa <span className="text-text-muted">(opcional)</span>
+              </label>
+              <input
+                value={visitor.empresa}
+                onChange={(e) => setVisitor((v) => ({ ...v, empresa: e.target.value }))}
+                placeholder="Ej. Accenture"
+                className="h-9 rounded-md bg-surface-badge px-3 font-mono text-[12px] text-white border-none outline-none placeholder:text-text-muted/60"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Fecha */}
         <div className="flex flex-col gap-1.5">

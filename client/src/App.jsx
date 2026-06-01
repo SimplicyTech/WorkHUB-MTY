@@ -15,6 +15,8 @@ import ConfirmationPage from './pages/Reserve/ConfirmationPage'
 import MyReservationsPage from './pages/Reserve/MyReservationsPage'
 import ReservationDetailPage from './pages/Reserve/ReservationDetailPage'
 import PuntosPage from './pages/Reserve/PuntosPage'
+import InvitacionEnviadaPage from './pages/Reserve/InvitacionEnviadaPage'
+import VisitaConfirmacionPage from './pages/Visita/VisitaConfirmacionPage'
 import ReadQRPage from './pages/ReadQR/Readqr'
 
 function App() {
@@ -39,12 +41,14 @@ function App() {
             <Route path="/reservar" element={<ReservePage />} />
             <Route path="/estacionamiento" element={<ParkingPage />} />
             <Route path="/confirmacion" element={<ConfirmationPage />} />
+            <Route path="/invitacion-enviada" element={<InvitacionEnviadaPage />} />
             <Route path="/mis-reservaciones" element={<MyReservationsPage />} />
             <Route path="/mis-reservaciones/:id" element={<ReservationDetailPage />} />
             <Route path="/puntos" element={<PuntosPage />} />
             <Route path="/ReadQR" element={<ReadQRPage />} />
           </Route>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/visita/confirmar" element={<VisitaConfirmacionPage />} />
         </Routes>
       </BrowserRouter>
       </LecturaProvider>
