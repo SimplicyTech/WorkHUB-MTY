@@ -184,16 +184,23 @@ export default function ReservePage() {
       deskData.find((d) => d.id === selectedDesk) ||
       salasData.find((s) => s.id === selectedDesk)
 
-    navigate('/estacionamiento', {
-      state: {
-        deskId: selectedDesk,
-        espacioID: item?.espacioID,
-        date: formData.date,
-        entryTime: formData.entryTime,
-        exitTime: formData.exitTime,
-        reserveFor: formData.reserveFor,
-      },
-    })
+    const baseState = {
+      deskId: selectedDesk,
+      espacioID: item?.espacioID,
+      date: formData.date,
+      entryTime: formData.entryTime,
+      exitTime: formData.exitTime,
+      reserveFor: formData.reserveFor,
+    }
+
+    // Visitante: no pasa por estacionamiento (lo elige el visitante después).
+    // Va a la pantalla "Invitación enviada", que crea la invitación.
+    if (formData.reserveFor === 'visitor') {
+      navigate('/invitacion-enviada', { state: { ...baseState, visitor: formData.visitor } })
+      return
+    }
+
+    navigate('/estacionamiento', { state: baseState })
   }
 
   return (
