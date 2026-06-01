@@ -183,3 +183,36 @@ export function checkOutReservacion(reservacionId) {
     return response
   })
 }
+
+// ── Visitas ───────────────────────────────────────────────
+
+// Anfitrión: crea la invitación (visita + reserva apartada). Devuelve el link.
+export function createReservacionVisitante({ NombreVisitante, CorreoVisitante, Empresa, Motivo, EspacioID, Fecha, HoraInicio, HoraFin, Descripcion }) {
+  return apiRequest('/reservaciones/visitante', {
+    method: 'POST',
+    body: { NombreVisitante, CorreoVisitante, Empresa, Motivo, EspacioID, Fecha, HoraInicio, HoraFin, Descripcion },
+  }).then((response) => {
+    notifyDashboardChanged()
+    return response
+  })
+}
+
+// Públicas (el visitante entra por el token del link, sin login).
+export function getVisita(token) {
+  return apiRequest(`/visita/${token}`, { auth: false })
+}
+
+export function confirmarVisita(token, requiereEstacionamiento) {
+  return apiRequest(`/visita/${token}/confirmar`, {
+    method: 'POST',
+    auth: false,
+    body: { requiereEstacionamiento },
+  })
+}
+
+export function rechazarVisita(token) {
+  return apiRequest(`/visita/${token}/rechazar`, {
+    method: 'POST',
+    auth: false,
+  })
+}
