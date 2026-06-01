@@ -106,7 +106,7 @@ export default function InvitacionEnviadaPage() {
             <p className="font-mono text-xs text-text-muted text-center max-w-[600px] m-0 leading-[1.6]">
               Se apartó el espacio para <span className="text-white">{visitor.nombre}</span> el {formatDateLabel(date)} de {entryTime} a {exitTime}.{' '}
               {data?.CorreoEnviado
-                ? <>Le enviamos un correo a <span className="text-white">{data.CorreoVisitante}</span> para confirmar su asistencia y elegir estacionamiento.</>
+                ? <>Le enviamos un correo a <span className="text-white">{data.CorreoVisitante}</span> para confirmar su asistencia. Si no le llega, comparte el link de abajo.</>
                 : 'Comparte el siguiente link con el visitante para que confirme su asistencia.'}
             </p>
           </div>
