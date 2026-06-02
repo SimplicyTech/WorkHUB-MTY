@@ -139,7 +139,7 @@ export default function FloorMap9({ desks, salas = [], rooms, selectedDesk, onSe
           className="rounded-lg border border-[#200040] relative"
           style={{
             width: '100%',
-            minWidth: 1010,
+            minWidth: 960,
             height: 798,
             backgroundColor: '#0a0014',
             flexShrink: 0,
@@ -239,7 +239,7 @@ export default function FloorMap9({ desks, salas = [], rooms, selectedDesk, onSe
             code={findRoom('ac-9091')?.code}
             selectedDesk={selectedDesk}
             onSelect={onSelectDesk}
-            style={{ left: 880, top: 200, width: 110, height: 90 }}
+            style={{ left: 880, top: 200, width: 70, height: 90 }}
           />
 
           {/* WL-9090 */}
@@ -249,7 +249,7 @@ export default function FloorMap9({ desks, salas = [], rooms, selectedDesk, onSe
             code={findRoom('wl-9090')?.code}
             selectedDesk={selectedDesk}
             onSelect={onSelectDesk}
-            style={{ left: 875, top: 600, width: 110, height: 90 }}
+            style={{ left: 875, top: 600, width: 70, height: 90 }}
           />
 
           {/* WL-9089 */}
