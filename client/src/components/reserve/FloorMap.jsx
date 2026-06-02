@@ -182,7 +182,7 @@ export default function FloorMap({ desks, salas = [], rooms, selectedDesk, onSel
           className="rounded-lg border border-[#200040] relative"
           style={{
             width: '100%',
-            minWidth: 1010,
+            minWidth: 960,
             height: 798,
             backgroundColor: '#0a0014',
             flexShrink: 0,
@@ -228,21 +228,21 @@ export default function FloorMap({ desks, salas = [], rooms, selectedDesk, onSel
           <Room
             name="COMEDOR 1"
             code={findRoom('comedor-1')?.code}
-            style={{ left: 312, top: 80, width: 200, height: 70 }}
+            style={{ left: 292, top: 80, width: 200, height: 70 }}
           />
 
           {/* Sala Lectura */}
           <Room
             name="SALA LECTURA"
             code={findRoom('sala-lectura')?.code}
-            style={{ left: 662, top: 60, width: 90, height: 60 }}
+            style={{ left: 642, top: 60, width: 90, height: 60 }}
           />
 
           {/* Data Center (restricted) */}
           <Room
             name="DATA CENTER"
             restricted
-            style={{ left: 872, top: 60, width: 130, height: 60 }}
+            style={{ left: 802, top: 60, width: 130, height: 60 }}
           />
 
           {/* Cluster IC3006–IC3013 (4 cols × 2 rows) */}
@@ -251,7 +251,7 @@ export default function FloorMap({ desks, salas = [], rooms, selectedDesk, onSel
             selectedDesk={selectedDesk}
             onSelect={onSelectDesk}
             cols={4}
-            style={{ left: 582, top: 140 }}
+            style={{ left: 512, top: 140 }}
           />
 
           {/* Cluster IC3030–IC3035 (3 cols × 2 rows) */}
@@ -260,7 +260,7 @@ export default function FloorMap({ desks, salas = [], rooms, selectedDesk, onSel
             selectedDesk={selectedDesk}
             onSelect={onSelectDesk}
             cols={3}
-            style={{ left: 832, top: 140 }}
+            style={{ left: 762, top: 140 }}
           />
 
           {/* Cluster IC3014–IC3021 (4 cols × 2 rows) */}
@@ -269,7 +269,7 @@ export default function FloorMap({ desks, salas = [], rooms, selectedDesk, onSel
             selectedDesk={selectedDesk}
             onSelect={onSelectDesk}
             cols={4}
-            style={{ left: 582, top: 260 }}
+            style={{ left: 512, top: 260 }}
           />
 
           {/* Cluster IC3036–IC3039 (2 cols × 2 rows) */}
@@ -278,14 +278,14 @@ export default function FloorMap({ desks, salas = [], rooms, selectedDesk, onSel
             selectedDesk={selectedDesk}
             onSelect={onSelectDesk}
             cols={2}
-            style={{ left: 832, top: 261 }}
+            style={{ left: 762, top: 261 }}
           />
 
           {/* Comedor 2 */}
           <Room
             name="COMEDOR 2"
             code={findRoom('comedor-2')?.code}
-            style={{ left: 73, top: 320, width: 180, height: 70 }}
+            style={{ left: 53, top: 320, width: 180, height: 70 }}
           />
 
           {/* Sierra Madre */}
@@ -295,7 +295,7 @@ export default function FloorMap({ desks, salas = [], rooms, selectedDesk, onSel
             code={findRoom('sierra-madre')?.code}
             selectedDesk={selectedDesk}
             onSelect={onSelectDesk}
-            style={{ left: 335, top: 350, width: 200, height: 80 }}
+            style={{ left: 285, top: 350, width: 200, height: 80 }}
           />
 
           {/* Cluster IC3022–IC3029 (4 cols × 2 rows) */}
@@ -304,20 +304,20 @@ export default function FloorMap({ desks, salas = [], rooms, selectedDesk, onSel
             selectedDesk={selectedDesk}
             onSelect={onSelectDesk}
             cols={4}
-            style={{ left: 582, top: 390 }}
+            style={{ left: 512, top: 390 }}
           />
 
           {/* Bunker */}
           <Room
             name="Bunker"
-            style={{ left: 632, top: 510, width: 90, height: 50 }}
+            style={{ left: 612, top: 510, width: 90, height: 50 }}
           />
 
           {/* Lounge */}
           <Room
             name="LOUNGE"
             code={findRoom('lounge')?.code}
-            style={{ left: 96, top: 514, width: 150, height: 60 }}
+            style={{ left: 76, top: 514, width: 150, height: 60 }}
           />
 
           {/* Touch Point */}
@@ -327,7 +327,7 @@ export default function FloorMap({ desks, salas = [], rooms, selectedDesk, onSel
             code={findRoom('touch-point')?.code}
             selectedDesk={selectedDesk}
             onSelect={onSelectDesk}
-            style={{ left: 370, top: 524, width: 150, height: 60 }}
+            style={{ left: 350, top: 524, width: 150, height: 60 }}
           />
 
           {/* La Silla */}
@@ -337,7 +337,7 @@ export default function FloorMap({ desks, salas = [], rooms, selectedDesk, onSel
             code="ICSJ-3041 · Sala Junta Grande"
             selectedDesk={selectedDesk}
             onSelect={onSelectDesk}
-            style={{ left: 230, top: 632, width: 380, height: 110 }}
+            style={{ left: 210, top: 632, width: 380, height: 110 }}
           />
         </div>
       </div>

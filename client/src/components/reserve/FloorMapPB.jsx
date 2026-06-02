@@ -139,8 +139,8 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
           className="rounded-lg border border-[#200040] relative"
           style={{
             width: '115%',
-            minWidth: 1010,
-            height: 798,
+            minWidth: 960,
+            height: 550,
             backgroundColor: '#0a0014',
             flexShrink: 0,
           }}
@@ -150,7 +150,7 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
             className="absolute flex items-center justify-between"
             style={{ left: 0, top: 0, right: 0, height: 40, padding: '16px 24px' }}
           >
-            <span className="font-heading text-sm text-white font-semibold">Piso 9</span>
+            <span className="font-heading text-sm text-white font-semibold">Planta Baja</span>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded bg-accent" />
@@ -180,15 +180,15 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
             const cellH = 25
             const gap = 6
             const clusterBases = {
-              'PB01_PB07': { left: 30, top: 280, cols: 7 },
-              'PB08_PB17': { left: 85, top: 350, cols: 5 },
-              'PB18_PB23': { left: 120, top: 440, cols: 3 },
-              'PB24_PB43': { left: 160, top: 530, cols: 4 },
-              'PB28_PB47': { left: 400, top: 530, cols: 4 },
-              'PB32_PB51': { left: 640, top: 530, cols: 4 },
-              'PB36_PB55': { left: 880, top: 530, cols: 4 },
-              'PB56_PB67': { left: 400, top: 610, cols: 4 },
-              'PB60_PB71': { left: 640, top: 610, cols: 4 },
+              'PB01_PB07': { left: 30, top: 80, cols: 7 },
+              'PB08_PB17': { left: 85, top: 150, cols: 5 },
+              'PB18_PB23': { left: 120, top: 240, cols: 3 },
+              'PB24_PB43': { left: 160, top: 330, cols: 4 },
+              'PB28_PB47': { left: 400, top: 330, cols: 4 },
+              'PB32_PB51': { left: 640, top: 330, cols: 4 },
+              'PB36_PB55': { left: 880, top: 330, cols: 4 },
+              'PB56_PB67': { left: 400, top: 410, cols: 4 },
+              'PB60_PB71': { left: 640, top: 410, cols: 4 },
             }
 
             return desks.map((d) => {
@@ -225,7 +225,7 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
             code={findRoom('f-pb76')?.code}
             selectedDesk={selectedDesk}
             onSelect={onSelectDesk}
-            style={{ left: 540, top: 420, width: 110, height: 90 }}
+            style={{ left: 540, top: 220, width: 110, height: 90 }}
           />
 
           <SelectableRoom
@@ -234,7 +234,7 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
             code={findRoom('LH-PB77')?.code}
             selectedDesk={selectedDesk}
             onSelect={onSelectDesk}
-            style={{ left: 800, top: 420, width: 140, height: 90 }}
+            style={{ left: 800, top: 220, width: 140, height: 90 }}
           />
 
           <SelectableRoom
@@ -243,14 +243,14 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
             code={findRoom('MT-PB78')?.code}
             selectedDesk={selectedDesk}
             onSelect={onSelectDesk}
-            style={{ left: 950, top: 300, width: 160, height: 100 }}
+            style={{ left: 950, top: 100, width: 140, height: 100 }}
           />
 
           {/* Phone Booth */}
           <Room
             name="PHONE BOOTH"
             code={findRoom('phone-booth')?.code}
-            style={{ left: 400, top: 380, width: 80, height: 140 }}
+            style={{ left: 400, top: 180, width: 80, height: 140 }}
           />
 
         </div>
