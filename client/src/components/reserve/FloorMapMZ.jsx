@@ -139,7 +139,7 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
           className="rounded-lg border border-[#200040] relative"
           style={{
             width: '120%',
-            minWidth: 1010,
+            minWidth: 960,
             height: 798,
             backgroundColor: '#0a0014',
             flexShrink: 0,
@@ -201,8 +201,8 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
               'MZ82_MZ85': { left: 990, top: 400, cols: 2 },
               'MZ86_MZ93': { left: 880, top: 300, cols: 4 },
               'MZ94_MZ98': { left: 840, top: 200, cols: 5 },
-              'MZ99_MZ104': { left: 866, top: 40, cols: 6 },
-              'MZ105_MZ114': { left: 922, top: 90, cols: 5 },
+              'MZ99_MZ104': { left: 800, top: 40, cols: 6 },
+              'MZ105_MZ114': { left: 856, top: 90, cols: 5 },
             }
 
             return desks.map((d) => {
