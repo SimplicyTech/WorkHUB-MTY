@@ -127,9 +127,9 @@ export default function FloorMap9({ desks, salas = [], rooms, selectedDesk, onSe
   const findSala = (code) => salas.find((s) => s.id.includes(code))
 
   return (
-    <div className="flex-1 flex flex-col min-h-[620px] lg:h-full min-w-0">
+    <div className="flex-1 flex flex-col h-full w-full min-w-0 overflow-hidden">
       {/* Map Canvas - scrollable */}
-      <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 relative">
+      <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 relative w-full">
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 rounded-lg">
             <span className="font-mono text-sm text-white animate-pulse">Cargando mapa...</span>
@@ -138,8 +138,7 @@ export default function FloorMap9({ desks, salas = [], rooms, selectedDesk, onSe
         <div
           className="rounded-lg border border-[#200040] relative"
           style={{
-            width: '100%',
-            minWidth: 960,
+            width: 960,
             height: 798,
             backgroundColor: '#0a0014',
             flexShrink: 0,

@@ -214,7 +214,7 @@ export default function ReservePage() {
           </div>
         </div>
       ) : (
-        <div className="relative flex-1 flex">
+        <div className="relative flex-1 flex overflow-hidden">
           {/**
            * Dynamically load `FloorMap<PisoID>.jsx` when available.
            * Fallback order:
@@ -270,7 +270,7 @@ export default function ReservePage() {
                 }}
               >
                 <h3 className="font-heading text-xl font-bold uppercase text-white">
-                  No puedes reservar este día
+                  No puedes reservar este horario
                 </h3>
                 <p
                   className="font-mono text-[12px] leading-[1.6]"
@@ -279,7 +279,7 @@ export default function ReservePage() {
                   {fechaBloqueada.motivo}
                 </p>
                 <p className="font-mono text-[11px] text-text-muted">
-                  Selecciona otra fecha en el calendario para continuar.
+                  Elige un horario distinto para poder reservar.
                 </p>
               </div>
             </div>
