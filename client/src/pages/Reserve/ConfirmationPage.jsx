@@ -20,6 +20,17 @@ function formatDateLabel(dateStr) {
   return `${d} / ${months[parseInt(m, 10) - 1]} / ${y}`
 }
 
+function parseTimeToMinutes(time) {
+  if (!time) return null
+  const [hours, minutes] = String(time).split(':').map((v) => parseInt(v, 10))
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null
+  return hours * 60 + minutes
+}
+
+function rangesOverlap(startA, endA, startB, endB) {
+  return startA < endB && startB < endA
+}
+
 export default function ConfirmationPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -57,15 +68,24 @@ export default function ConfirmationPage() {
       try {
         const reservationsRes = await getReservacionesByEmpleado(user.empleadoId)
         const currentDateKey = getDateKey(date)
-        // Sólo bloquean las del mismo día que NO sean canceladas.
-        // Las liberadas (no-show) también bloquean: el castigo dura todo el día.
-        const existingSameDay = (reservationsRes.data || []).some((r) => {
+        const newStart = parseTimeToMinutes(entryTime)
+        const newEnd = parseTimeToMinutes(exitTime)
+
+        const existingOverlap = (reservationsRes.data || []).some((r) => {
           if (getDateKey(r.Fecha) !== currentDateKey) return false
-          return classifyReservation(r) !== 'cancelled'
+          if (classifyReservation(r) === 'cancelled') return false
+
+          const existingStart = parseTimeToMinutes(r.HoraInicio)
+          const existingEnd = parseTimeToMinutes(r.HoraFin)
+          if (existingStart === null || existingEnd === null || newStart === null || newEnd === null) {
+            return false
+          }
+
+          return rangesOverlap(existingStart, existingEnd, newStart, newEnd)
         })
 
-        if (existingSameDay) {
-          setError('Ya tienes una reservación el mismo día. Solo se permite una reservación por día.')
+        if (existingOverlap) {
+          setError('No puedes reservar un horario que se solape con una reservación existente. Puedes reservar el mismo día si el rango es distinto.')
           setSaving(false)
           return
         }
