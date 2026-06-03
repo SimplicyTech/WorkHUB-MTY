@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { getPisos, getEmpleadoRango, getEmpleadoDisponibilidadFecha } from '../../services/reservations'
+import { getPisos, getEmpleadoRango, getReservacionesByEmpleado } from '../../services/reservations'
 import { useAuth } from '../../context/useAuth'
+import { classifyReservation } from '../../utils/reservationStatus'
 import CustomDatePicker from './CustomDatePicker'
 import CustomTimePicker from './CustomTimePicker'
 
@@ -20,9 +21,18 @@ function addDaysISO(isoDate, days) {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 }
 
+function getDateKey(dateStr) {
+  if (!dateStr) return null
+  return String(dateStr).slice(0, 10)
+}
+
 function getTimeMinutes(time) {
-  const [hours, minutes] = time.split(':').map(Number)
+  const [hours, minutes] = String(time).split(':').map(Number)
   return hours * 60 + minutes
+}
+
+function rangesOverlap(startA, endA, startB, endB) {
+  return startA < endB && startB < endA
 }
 
 function getDefaultTimes() {
@@ -90,19 +100,38 @@ export default function BookingSidebar({
   const diasAnticipacion = Number(rango?.DiasAnticipacion) || 1
   const maxDate = addDaysISO(getTodayString(), diasAnticipacion)
 
-  // Verifica si el empleado puede reservar en la fecha seleccionada.
-  // Bloquea cuando ya tiene una reserva ese día (cualquier estatus excepto Cancelada).
+  // Verifica si el empleado puede reservar en el rango horario seleccionado.
+  // Permite el mismo día siempre que no haya solapamiento con otra reservación.
   useEffect(() => {
     if (!user?.empleadoId || !date) {
       setFechaBloqueada(null)
       return
     }
+
+    const entryMinutes = getTimeMinutes(entryTime)
+    const exitMinutes = getTimeMinutes(exitTime)
+    if (Number.isNaN(entryMinutes) || Number.isNaN(exitMinutes) || entryMinutes >= exitMinutes) {
+      setFechaBloqueada(null)
+      return
+    }
+
     let cancelled = false
-    getEmpleadoDisponibilidadFecha(user.empleadoId, date)
+    getReservacionesByEmpleado(user.empleadoId)
       .then((res) => {
         if (cancelled) return
-        const d = res.data || {}
-        setFechaBloqueada(d.puedeReservar === false ? { motivo: d.motivo } : null)
+        const currentDate = date
+        const overlap = (res.data || []).some((r) => {
+          if (getDateKey(r.Fecha) !== currentDate) return false
+          if (classifyReservation(r) === 'cancelled') return false
+
+          const existingStart = getTimeMinutes(r.HoraInicio)
+          const existingEnd = getTimeMinutes(r.HoraFin)
+          if (Number.isNaN(existingStart) || Number.isNaN(existingEnd)) return false
+
+          return rangesOverlap(existingStart, existingEnd, entryMinutes, exitMinutes)
+        })
+
+        setFechaBloqueada(overlap ? { motivo: 'Ya tienes una reservación en ese rango horario. Elige otro horario.' } : null)
       })
       .catch(() => {
         if (cancelled) return
@@ -111,7 +140,7 @@ export default function BookingSidebar({
     return () => {
       cancelled = true
     }
-  }, [user?.empleadoId, date])
+  }, [user?.empleadoId, date, entryTime, exitTime])
 
   // Notificamos al padre para que pueda mostrar el banner sobre el mapa.
   useEffect(() => {
