@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500/api/workhub'
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500/api/workhub'
 
 const TOKEN_KEY = 'workhub_token'
 

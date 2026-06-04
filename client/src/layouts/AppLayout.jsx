@@ -1,5 +1,6 @@
 import { Outlet, Navigate } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
+import VoiceReservationAssistant from '../components/ai/VoiceReservationAssistant'
 import { useAuth } from '../context/useAuth'
 
 export default function AppLayout() {
@@ -17,6 +18,7 @@ export default function AppLayout() {
       <main className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden">
         <Outlet />
       </main>
+      <VoiceReservationAssistant />
     </div>
   )
 }
