@@ -100,6 +100,7 @@ export default function VoiceReservationAssistant() {
   const [userPartial, setUserPartial] = useState('')
   const [botPartial, setBotPartial] = useState('')
   const [micLevel, setMicLevel] = useState(0)
+  const [mobileTyping, setMobileTyping] = useState(false) // en cel: false = voz, true = teclado
 
   const proposalRef = useRef(null)
   const scrollRef = useRef(null)
@@ -341,7 +342,7 @@ export default function VoiceReservationAssistant() {
   return (
     <div className="fixed bottom-4 right-4 z-50 flex max-w-[calc(100vw-32px)] flex-col items-end gap-3">
       {open && (
-        <section className="flex h-[min(560px,calc(100vh-96px))] w-[min(400px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-surface-badge bg-[#0a0014] shadow-[0_8px_40px_rgba(161,0,255,0.20)]">
+        <section className="fixed inset-0 z-50 flex h-[100dvh] w-full flex-col overflow-hidden bg-[#0a0014] sm:static sm:h-[min(560px,calc(100vh-96px))] sm:w-[400px] sm:rounded-2xl sm:border sm:border-surface-badge sm:shadow-[0_8px_40px_rgba(161,0,255,0.20)]">
           <div className="flex items-center justify-between gap-3 bg-surface-card px-5 py-4">
             <div className="flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white">
@@ -497,7 +498,8 @@ export default function VoiceReservationAssistant() {
             <div ref={scrollRef} />
           </div>
 
-          <div className="flex items-center gap-3 bg-surface-card px-4 py-3">
+          {/* ENTRADA — ESCRITORIO: fila texto + mic + enviar (sin cambios) */}
+          <div className="hidden items-center gap-3 bg-surface-card px-4 py-3 sm:flex">
             <input
               value={text}
               onChange={(event) => setText(event.target.value)}
@@ -532,13 +534,80 @@ export default function VoiceReservationAssistant() {
               <SendIcon size={16} />
             </button>
           </div>
+
+          {/* ENTRADA — CELULAR: voz primero (mic grande); escribir es secundario */}
+          <div className="flex flex-col items-center gap-2.5 bg-surface-card px-4 pb-7 pt-5 sm:hidden">
+            {mobileTyping ? (
+              <div className="flex w-full items-center gap-2">
+                <input
+                  value={text}
+                  onChange={(event) => setText(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') sendText()
+                  }}
+                  placeholder="Escribe tu mensaje..."
+                  autoFocus
+                  className="h-11 min-w-0 flex-1 rounded-full border-none bg-surface-badge px-4 font-mono text-[13px] text-white outline-none placeholder:text-text-muted"
+                />
+                <button
+                  type="button"
+                  onClick={sendText}
+                  disabled={!liveActive && status === 'processing'}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none bg-primary text-white disabled:opacity-50"
+                  aria-label="Enviar mensaje"
+                >
+                  <SendIcon size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileTyping(false)}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary bg-surface-badge text-primary"
+                  aria-label="Volver a voz"
+                >
+                  <MicIcon size={18} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={toggleLive}
+                  style={liveActive ? { boxShadow: `0 0 0 ${Math.min(micLevel * 120, 22)}px rgba(161,0,255,0.25)` } : undefined}
+                  className={`flex h-20 w-20 items-center justify-center rounded-full border-2 transition-[box-shadow] duration-75 ${
+                    liveActive
+                      ? 'border-primary bg-primary text-white'
+                      : liveStatus === 'connecting'
+                        ? 'border-primary bg-surface-badge text-primary opacity-60 animate-pulse'
+                        : 'border-primary bg-surface-badge text-primary'
+                  }`}
+                  aria-label={liveActive ? 'Terminar conversacion de voz' : 'Hablar por voz'}
+                >
+                  <MicIcon size={30} />
+                </button>
+                <span className="font-mono text-[11px] text-text-muted">
+                  {liveStatus === 'connecting'
+                    ? 'Conectando…'
+                    : liveActive
+                      ? 'Escuchando… toca para terminar'
+                      : 'Toca para hablar'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setMobileTyping(true)}
+                  className="font-mono text-[10px] text-primary underline-offset-2 hover:underline"
+                >
+                  o escribir
+                </button>
+              </>
+            )}
+          </div>
         </section>
       )}
 
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="flex h-14 w-14 items-center justify-center rounded-full border-none bg-primary text-white shadow-[0_10px_28px_rgba(161,0,255,0.35)] cursor-pointer hover:bg-primary-dark"
+        className={`h-14 w-14 items-center justify-center rounded-full border-none bg-primary text-white shadow-[0_10px_28px_rgba(161,0,255,0.35)] cursor-pointer hover:bg-primary-dark ${open ? 'hidden sm:flex' : 'flex'}`}
         aria-label="Abrir asistente IA"
       >
         <BotIcon size={26} />

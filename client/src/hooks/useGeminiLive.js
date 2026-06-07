@@ -229,7 +229,7 @@ export function useGeminiLive({
     let stream
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       })
     } catch {
       onError?.('No tengo permiso para usar el microfono.')
@@ -279,9 +279,14 @@ export function useGeminiLive({
 
     processor.onaudioprocess = (event) => {
       if (!sessionRef.current || !readyRef.current) return
-      // Enviamos SIEMPRE el mic (incluso mientras el asistente habla) para permitir
-      // barge-in: Gemini detecta que el usuario interrumpe (VAD) y manda serverContent.interrupted,
-      // donde cortamos la reproduccion. El eco lo controla echoCancellation del navegador.
+      // Medio-duplex: NO enviar el mic mientras el asistente esta hablando (mas una cola de 0.2s).
+      // Esto evita el bucle de eco/feedback en altavoz —sobre todo en celular—, donde el micro
+      // capta la voz de la IA y Gemini la procesa como si el usuario estuviera hablando.
+      const outCtx = outputCtxRef.current
+      if (outCtx && outCtx.currentTime < nextTimeRef.current + 0.2) {
+        onLevel?.(0)
+        return
+      }
       const input = event.inputBuffer.getChannelData(0)
 
       // Nivel de voz (RMS) para el feedback visual de "escuchando".
