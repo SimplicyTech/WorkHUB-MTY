@@ -4,7 +4,9 @@ import tailwindcss from '@tailwindcss/vite'
 import basicSsl from '@vitejs/plugin-basic-ssl'
 
 export default defineConfig(({ command }) => {
-  const useHttps = process.env.VITE_DEV_HTTPS === 'true'
+  // HTTPS encendido por defecto (necesario para entrar desde el celular en la red local:
+  // micro y lector QR requieren contexto seguro). Se puede apagar con VITE_DEV_HTTPS=false.
+  const useHttps = process.env.VITE_DEV_HTTPS !== 'false'
 
   return {
     plugins: [

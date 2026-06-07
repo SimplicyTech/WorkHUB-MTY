@@ -36,7 +36,22 @@ export function processAiReservationText(payload) {
     method: 'POST',
     body: payload,
   }).then((response) => {
-    if (response?.action === 'confirmed') notifyDashboardChanged()
+    if (response?.action === 'confirmed' || response?.action === 'cancelled-existing') notifyDashboardChanged()
+    return response
+  })
+}
+
+export function listMyAiReservations(fecha) {
+  const query = fecha ? `?fecha=${encodeURIComponent(fecha)}` : ''
+  return apiRequest(`/ai/reservations/mine${query}`, { method: 'GET' })
+}
+
+export function cancelAiReservation(payload) {
+  return apiRequest('/ai/reservations/cancel-existing', {
+    method: 'POST',
+    body: payload,
+  }).then((response) => {
+    notifyDashboardChanged()
     return response
   })
 }

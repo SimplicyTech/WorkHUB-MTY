@@ -69,6 +69,7 @@ export function useGeminiLive({
   onOutputTranscript,
   onToolCall,
   onError,
+  onLevel,
 } = {}) {
   const [active, setActive] = useState(false)
 
@@ -150,30 +151,26 @@ export function useGeminiLive({
     inTranscriptRef.current = ''
     outTranscriptRef.current = ''
     readyRef.current = false
+    onLevel?.(0)
     onStatus?.('idle')
-  }, [onStatus, stopPlayback])
+  }, [onLevel, onStatus, stopPlayback])
 
   const handleMessage = useCallback((message) => {
     const serverContent = message?.serverContent
 
-    if (message?.setupComplete) {
-      readyRef.current = true
-      console.log('[live] setupComplete (listo para enviar audio)')
-    }
-    if (message?.toolCall) console.log('[live] toolCall', message.toolCall.functionCalls?.map((c) => c.name))
+    if (message?.setupComplete) readyRef.current = true
 
     if (serverContent?.interrupted) stopPlayback()
 
     // El audio viene en parts[].inlineData; message.data es el MISMO audio agregado.
-    // Usar solo uno (parts), o caer a message.data si no hay parts. Reproducir ambos
-    // hacia que cada fragmento sonara dos veces (trabado / palabras repetidas).
+    // Reproducir solo parts (o message.data si no hay parts); reproducir ambos hacia
+    // que cada fragmento sonara dos veces (trabado / palabras repetidas).
     let audioChunks = 0
     const parts = serverContent?.modelTurn?.parts || []
     for (const part of parts) {
       if (part.inlineData?.data) { playPcm(base64ToInt16(part.inlineData.data)); audioChunks += 1 }
     }
-    if (audioChunks === 0 && message?.data) { playPcm(base64ToInt16(message.data)); audioChunks += 1 }
-    if (audioChunks) console.log('[live] audio recibido x', audioChunks)
+    if (audioChunks === 0 && message?.data) playPcm(base64ToInt16(message.data))
 
     if (serverContent?.inputTranscription?.text) {
       inTranscriptRef.current += serverContent.inputTranscription.text
@@ -249,16 +246,10 @@ export function useGeminiLive({
       session = await ai.live.connect({
         model,
         callbacks: {
-          onopen: () => { console.log('[live] sesion abierta'); onStatus?.('live') },
+          onopen: () => onStatus?.('live'),
           onmessage: handleMessage,
-          onerror: (event) => {
-            console.error('[live] error de sesion:', event)
-            onError?.(event?.message || 'Error en la sesion de voz.')
-          },
-          onclose: (event) => {
-            console.log('[live] sesion cerrada:', event?.reason || event?.code || '')
-            sessionRef.current = null
-          },
+          onerror: (event) => onError?.(event?.message || 'Error en la sesion de voz.'),
+          onclose: () => { sessionRef.current = null },
         },
       })
     } catch (error) {
@@ -286,37 +277,34 @@ export function useGeminiLive({
     const processor = inputCtx.createScriptProcessor(4096, 1, 1)
     processorRef.current = processor
 
-    let framesSent = 0
-    let sendErrorLogged = false
     processor.onaudioprocess = (event) => {
       if (!sessionRef.current || !readyRef.current) return
-      // No enviar el mic mientras el asistente esta hablando (incluye 150ms de cola):
-      // evita el eco/feedback que hacia que la IA se trabara y repitiera palabras.
-      const outCtx = outputCtxRef.current
-      if (outCtx && outCtx.currentTime < nextTimeRef.current + 0.15) return
+      // Enviamos SIEMPRE el mic (incluso mientras el asistente habla) para permitir
+      // barge-in: Gemini detecta que el usuario interrumpe (VAD) y manda serverContent.interrupted,
+      // donde cortamos la reproduccion. El eco lo controla echoCancellation del navegador.
       const input = event.inputBuffer.getChannelData(0)
+
+      // Nivel de voz (RMS) para el feedback visual de "escuchando".
+      if (onLevel) {
+        let sum = 0
+        for (let i = 0; i < input.length; i += 1) sum += input[i] * input[i]
+        onLevel(Math.sqrt(sum / input.length))
+      }
+
       const downsampled = downsampleTo16k(input, inputCtx.sampleRate)
       const data = floatToPcm16Base64(downsampled)
       try {
         sessionRef.current.sendRealtimeInput({ audio: { data, mimeType: 'audio/pcm;rate=16000' } })
-        framesSent += 1
-        if (framesSent === 1) console.log('[live] enviando audio del mic…')
-      } catch (error) {
-        if (!sendErrorLogged) {
-          sendErrorLogged = true
-          console.error('[live] sendRealtimeInput error:', error)
-        }
-      }
+      } catch { /* noop */ }
     }
     sourceNode.connect(processor)
     processor.connect(inputCtx.destination)
 
     // Clave: reanudar el contexto del mic (suele nacer "suspended" tras los awaits).
     try { await inputCtx.resume() } catch { /* noop */ }
-    console.log('[live] mic listo, ctx:', inputCtx.state, 'sampleRate:', inputCtx.sampleRate)
 
     setActive(true)
-  }, [handleMessage, onError, onStatus])
+  }, [handleMessage, onError, onStatus, onLevel])
 
   const sendText = useCallback((text) => {
     const value = String(text || '').trim()

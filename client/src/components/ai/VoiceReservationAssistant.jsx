@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
+  cancelAiReservation,
   confirmAiReservation,
+  listMyAiReservations,
   processAiReservationText,
   proposeAiReservation,
-  requestSpeechStream,
 } from '../../services/ai'
 import { useGeminiLive } from '../../hooks/useGeminiLive'
+
+const SUGGESTIONS = [
+  'Reservar un escritorio para hoy',
+  'Quiero un lugar mañana en la mañana',
+  'Necesito estacionamiento',
+]
 
 function nowTime() {
   return new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
@@ -75,157 +82,6 @@ const SendIcon = (props) => (
   <Icon {...props} path={<><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></>} />
 )
 
-// Reproduccion de Gemini TTS en streaming via Web Audio API.
-let audioCtx = null
-let ttsAbort = null
-let ttsSources = []
-let ttsEndTimer = null
-
-function getAudioContext() {
-  if (!audioCtx) {
-    const Ctx = window.AudioContext || window.webkitAudioContext
-    if (!Ctx) return null
-    audioCtx = new Ctx()
-  }
-  return audioCtx
-}
-
-function stopSpeaking() {
-  window.speechSynthesis?.cancel()
-  if (ttsAbort) {
-    try { ttsAbort.abort() } catch { /* noop */ }
-    ttsAbort = null
-  }
-  if (ttsEndTimer) {
-    window.clearTimeout(ttsEndTimer)
-    ttsEndTimer = null
-  }
-  for (const node of ttsSources) {
-    try {
-      node.onended = null
-      node.stop()
-    } catch { /* noop */ }
-  }
-  ttsSources = []
-}
-
-// Respaldo: voz del navegador si Gemini TTS no esta disponible.
-function speakWithBrowser(text, { onStart, onEnd } = {}) {
-  if (!text || !window.speechSynthesis) {
-    onEnd?.()
-    return
-  }
-  window.speechSynthesis.cancel()
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = 'es-MX'
-  utterance.onstart = onStart
-  utterance.onend = onEnd
-  utterance.onerror = onEnd
-  window.speechSynthesis.speak(utterance)
-}
-
-// Parte el texto en frases para que la primera (corta) suene mientras se generan las demas.
-function splitIntoSegments(text) {
-  const raw = String(text).split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean)
-  const segments = []
-  for (const piece of raw) {
-    const last = segments[segments.length - 1]
-    if (last && last.length < 30) segments[segments.length - 1] = `${last} ${piece}`
-    else segments.push(piece)
-  }
-  return segments.length ? segments : [String(text)]
-}
-
-// Sintetiza UNA frase y agenda su PCM al final de la cola de audio compartida.
-async function streamSegment(ctx, segText, state, signal, onStart) {
-  const res = await requestSpeechStream(segText, { signal })
-  const sampleRate = Number(res.headers.get('X-Sample-Rate')) || 24000
-  const reader = res.body.getReader()
-  let leftover = new Uint8Array(0)
-
-  const schedulePcm = (incoming) => {
-    let data = incoming
-    if (leftover.length) {
-      const merged = new Uint8Array(leftover.length + incoming.length)
-      merged.set(leftover, 0)
-      merged.set(incoming, leftover.length)
-      data = merged
-    }
-    const sampleCount = Math.floor(data.length / 2)
-    const usableBytes = sampleCount * 2
-    leftover = data.slice(usableBytes)
-    if (sampleCount === 0) return
-
-    const view = new DataView(data.buffer, data.byteOffset, usableBytes)
-    const buffer = ctx.createBuffer(1, sampleCount, sampleRate)
-    const channel = buffer.getChannelData(0)
-    for (let i = 0; i < sampleCount; i += 1) {
-      channel[i] = view.getInt16(i * 2, true) / 32768
-    }
-
-    const startAt = Math.max(state.nextTime, ctx.currentTime + 0.02)
-    const node = ctx.createBufferSource()
-    node.buffer = buffer
-    node.connect(ctx.destination)
-    node.onended = () => {
-      const idx = ttsSources.indexOf(node)
-      if (idx >= 0) ttsSources.splice(idx, 1)
-    }
-    node.start(startAt)
-    ttsSources.push(node)
-
-    if (!state.gotAudio) onStart?.()
-    state.nextTime = startAt + buffer.duration
-    state.scheduledEnd = state.nextTime
-    state.gotAudio = true
-  }
-
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    if (value && value.length) schedulePcm(value)
-  }
-}
-
-async function streamGeminiSpeech(text, { onStart, onEnd } = {}) {
-  const ctx = getAudioContext()
-  if (!ctx) throw new Error('AudioContext no disponible')
-  if (ctx.state === 'suspended') await ctx.resume()
-
-  const abort = new AbortController()
-  ttsAbort = abort
-  const base = ctx.currentTime + 0.08
-  const state = { nextTime: base, scheduledEnd: base, gotAudio: false }
-
-  for (const segment of splitIntoSegments(text)) {
-    await streamSegment(ctx, segment, state, abort.signal, onStart)
-  }
-
-  if (!state.gotAudio) throw new Error('Sin audio')
-
-  const delayMs = Math.max(0, (state.scheduledEnd - ctx.currentTime) * 1000) + 100
-  ttsEndTimer = window.setTimeout(() => {
-    ttsEndTimer = null
-    if (ttsAbort === abort) ttsAbort = null
-    onEnd?.()
-  }, delayMs)
-}
-
-// Voz natural de Gemini TTS (frase por frase); si falla, cae al sintetizador del navegador.
-async function speak(text, handlers = {}) {
-  if (!text) {
-    handlers.onEnd?.()
-    return
-  }
-  stopSpeaking()
-  try {
-    await streamGeminiSpeech(text, handlers)
-  } catch (error) {
-    if (error?.name === 'AbortError') return
-    speakWithBrowser(text, handlers)
-  }
-}
-
 export default function VoiceReservationAssistant() {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -240,28 +96,22 @@ export default function VoiceReservationAssistant() {
   const [text, setText] = useState('')
   const [proposal, setProposal] = useState(null)
   const [reservationId, setReservationId] = useState(null)
-  const [voiceState, setVoiceState] = useState(null) // null | 'preparando' | 'hablando'
   const [liveStatus, setLiveStatus] = useState('idle') // idle | connecting | live | error
   const [userPartial, setUserPartial] = useState('')
   const [botPartial, setBotPartial] = useState('')
+  const [micLevel, setMicLevel] = useState(0)
 
   const proposalRef = useRef(null)
+  const scrollRef = useRef(null)
 
-  const pushMessage = useCallback((role, message) => {
+  const pushMessage = useCallback((role, message, isError = false) => {
     if (!message) return
-    setMessages((current) => [...current.slice(-7), { role, text: message, time: nowTime() }])
+    setMessages((current) => [...current.slice(-99), { role, text: message, time: nowTime(), isError }])
   }, [])
 
-  // Mensaje del path de TEXTO: se muestra y se habla con Gemini TTS.
-  const addMessage = useCallback((role, message) => {
-    if (!message) return
-    pushMessage(role, message)
-    if (role !== 'assistant') return
-    setVoiceState('preparando')
-    speak(message, {
-      onStart: () => setVoiceState('hablando'),
-      onEnd: () => setVoiceState(null),
-    })
+  // Mensaje del path de TEXTO: solo se muestra (sin voz; la voz va por modo Live).
+  const addMessage = useCallback((role, message, isError = false) => {
+    pushMessage(role, message, isError)
   }, [pushMessage])
 
   const setCurrentProposal = useCallback((data) => {
@@ -275,12 +125,15 @@ export default function VoiceReservationAssistant() {
     if (!value) return
 
     setStatus('processing')
+    // Historial ANTES de agregar el mensaje nuevo (contexto para resolver referencias).
+    const history = messages.slice(-6).map((m) => ({ role: m.role, text: m.text }))
     addMessage('user', value)
 
     try {
       const processed = await processAiReservationText({
         text: value,
         proposalToken: proposalRef.current?.proposalToken || null,
+        history,
       })
 
       if (processed?.data?.proposalToken) {
@@ -299,7 +152,7 @@ export default function VoiceReservationAssistant() {
     } catch (error) {
       if (error?.data?.proposalToken) {
         setCurrentProposal(error.data)
-        addMessage('assistant', `${error?.error || 'La propuesta anterior ya no esta disponible.'} ${error.data.message}`)
+        addMessage('assistant', `${error?.error || 'La propuesta anterior ya no esta disponible.'} ${error.data.message}`, true)
         return
       }
       if (/reservado|disponible|conflicto/i.test(error?.message || error?.error || '')) {
@@ -307,12 +160,13 @@ export default function VoiceReservationAssistant() {
       }
       addMessage(
         'assistant',
-        error?.message || error?.error || 'No pude procesar la solicitud con Gemini.'
+        error?.message || error?.error || 'No pude procesar la solicitud con Gemini.',
+        true
       )
     } finally {
       setStatus('idle')
     }
-  }, [addMessage, setCurrentProposal])
+  }, [addMessage, setCurrentProposal, messages])
 
   // Tool calls de Gemini Live -> reusan la logica de reservas del backend (REST).
   const handleLiveToolCall = useCallback(async (call) => {
@@ -329,6 +183,31 @@ export default function VoiceReservationAssistant() {
         return { ok: false, error: 'No encontre disponibilidad para ese horario.' }
       } catch (error) {
         return { ok: false, error: error?.error || error?.message || 'No encontre disponibilidad.' }
+      }
+    }
+
+    if (name === 'cancel_reservation') {
+      if (!args.confirmed) return { ok: false, error: 'El usuario no confirmo la cancelacion.' }
+      try {
+        const result = await cancelAiReservation({
+          reservacionId: args.reservacionId,
+          fecha: args.fecha,
+          horaInicio: args.horaInicio,
+        })
+        return { ok: true, ...result?.data }
+      } catch (error) {
+        if (error?.data?.opciones) return { ok: false, error: error.error, opciones: error.data.opciones }
+        return { ok: false, error: error?.error || error?.message || 'No pude cancelar la reserva.' }
+      }
+    }
+
+    if (name === 'get_my_reservations') {
+      try {
+        const result = await listMyAiReservations(args.fecha || undefined)
+        const reservaciones = result?.data?.reservaciones || []
+        return { ok: true, total: reservaciones.length, reservaciones }
+      } catch (error) {
+        return { ok: false, error: error?.error || error?.message || 'No pude obtener tus reservaciones.' }
       }
     }
 
@@ -370,8 +249,10 @@ export default function VoiceReservationAssistant() {
   }, [pushMessage])
 
   const handleLiveError = useCallback((message) => {
-    pushMessage('assistant', message || 'Hubo un problema con la voz en vivo.')
+    pushMessage('assistant', message || 'Hubo un problema con la voz en vivo.', true)
   }, [pushMessage])
+
+  const handleLevel = useCallback((level) => setMicLevel(level), [])
 
   const {
     active: liveActive,
@@ -384,6 +265,7 @@ export default function VoiceReservationAssistant() {
     onOutputTranscript: handleOutputTranscript,
     onToolCall: handleLiveToolCall,
     onError: handleLiveError,
+    onLevel: handleLevel,
   })
 
   const toggleLive = useCallback(() => {
@@ -392,23 +274,27 @@ export default function VoiceReservationAssistant() {
       setUserPartial('')
       setBotPartial('')
     } else {
-      stopSpeaking()
-      setVoiceState(null)
       connectLive()
     }
   }, [liveActive, liveStatus, connectLive, disconnectLive])
 
-  const sendText = useCallback(async () => {
-    const value = text.trim()
+  const submitValue = useCallback(async (raw) => {
+    const value = String(raw || '').trim()
     if (!value) return
-    setText('')
     if (liveActive) {
       pushMessage('user', value)
       sendLiveText(value)
       return
     }
     await sendPrompt(value)
-  }, [liveActive, pushMessage, sendLiveText, sendPrompt, text])
+  }, [liveActive, pushMessage, sendLiveText, sendPrompt])
+
+  const sendText = useCallback(async () => {
+    const value = text.trim()
+    if (!value) return
+    setText('')
+    await submitValue(value)
+  }, [submitValue, text])
 
   const confirmPending = useCallback(async () => {
     if (!proposal?.proposalToken) return
@@ -423,18 +309,22 @@ export default function VoiceReservationAssistant() {
     } catch (error) {
       if (error?.data?.proposalToken) {
         setCurrentProposal(error.data)
-        addMessage('assistant', `${error?.error || 'La propuesta anterior ya no esta disponible.'} ${error.data.message}`)
+        addMessage('assistant', `${error?.error || 'La propuesta anterior ya no esta disponible.'} ${error.data.message}`, true)
         setStatus('idle')
         return
       }
-      addMessage('assistant', error?.error || 'No pude confirmar la reserva.')
+      addMessage('assistant', error?.error || 'No pude confirmar la reserva.', true)
       setStatus('idle')
     }
   }, [addMessage, proposal, setCurrentProposal])
 
+  // Baja el scroll al ultimo mensaje cada que cambia la conversacion.
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [messages, userPartial, botPartial, proposal, reservationId, status])
+
   useEffect(() => () => {
     disconnectLive()
-    stopSpeaking()
   }, [disconnectLive])
 
   const hasError = status === 'error' || liveStatus === 'error'
@@ -443,14 +333,10 @@ export default function VoiceReservationAssistant() {
     ? 'Conectando voz…'
     : liveActive
       ? 'Escuchando…'
-      : voiceState === 'preparando'
-        ? 'Generando voz…'
-        : voiceState === 'hablando'
-          ? 'Hablando…'
-          : status === 'processing'
-            ? 'Procesando…'
-            : 'En linea'
-  const statusPulse = liveActive || liveStatus === 'connecting' || Boolean(voiceState)
+      : status === 'processing'
+        ? 'Procesando…'
+        : 'En linea'
+  const statusPulse = liveActive || liveStatus === 'connecting'
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex max-w-[calc(100vw-32px)] flex-col items-end gap-3">
@@ -489,8 +375,8 @@ export default function VoiceReservationAssistant() {
                   <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-white">
                     <BotIcon size={14} />
                   </div>
-                  <div className="flex max-w-[280px] flex-col gap-1 rounded-xl rounded-tl-none bg-surface-card px-3.5 py-2.5">
-                    <p className="font-mono text-[11px] leading-[1.5] text-white whitespace-pre-wrap">{message.text}</p>
+                  <div className={`flex max-w-[280px] flex-col gap-1 rounded-xl rounded-tl-none px-3.5 py-2.5 ${message.isError ? 'border border-[#ff3246]/50 bg-[#ff3246]/10' : 'bg-surface-card'}`}>
+                    <p className={`font-mono text-[11px] leading-[1.5] whitespace-pre-wrap ${message.isError ? 'text-[#ff8a96]' : 'text-white'}`}>{message.text}</p>
                     {message.time && <span className="font-mono text-[8px] text-text-muted">{message.time}</span>}
                   </div>
                 </div>
@@ -523,6 +409,19 @@ export default function VoiceReservationAssistant() {
               </div>
             )}
 
+            {status === 'processing' && !liveActive && !botPartial && (
+              <div className="flex w-full items-start gap-2">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+                  <BotIcon size={14} />
+                </div>
+                <div className="flex items-center gap-1 rounded-xl rounded-tl-none bg-surface-card px-3.5 py-3">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-muted [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-muted [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-muted" />
+                </div>
+              </div>
+            )}
+
             {proposal && (
               <div className="ml-8 flex max-w-[280px] flex-col gap-3 rounded-xl border border-primary/40 bg-surface-card p-3">
                 <div className="grid grid-cols-2 gap-2 font-mono text-[10px]">
@@ -549,9 +448,10 @@ export default function VoiceReservationAssistant() {
                   <button
                     type="button"
                     onClick={confirmPending}
-                    className="rounded-full border border-primary bg-surface-badge px-3 py-1.5 font-mono text-[10px] font-semibold text-primary cursor-pointer hover:bg-primary hover:text-white"
+                    disabled={status === 'confirming'}
+                    className="rounded-full border border-primary bg-surface-badge px-3 py-1.5 font-mono text-[10px] font-semibold text-primary cursor-pointer hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Si, reservar
+                    {status === 'confirming' ? 'Reservando…' : 'Si, reservar'}
                   </button>
                   <button
                     type="button"
@@ -578,6 +478,23 @@ export default function VoiceReservationAssistant() {
                 </button>
               </div>
             )}
+
+            {messages.length <= 1 && !proposal && !reservationId && !liveActive && status !== 'processing' && (
+              <div className="ml-8 flex flex-col gap-2">
+                {SUGGESTIONS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => submitValue(suggestion)}
+                    className="self-start rounded-full border border-primary/40 bg-surface-card px-3 py-1.5 text-left font-mono text-[10px] text-primary cursor-pointer hover:bg-primary hover:text-white"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div ref={scrollRef} />
           </div>
 
           <div className="flex items-center gap-3 bg-surface-card px-4 py-3">
@@ -593,11 +510,12 @@ export default function VoiceReservationAssistant() {
             <button
               type="button"
               onClick={toggleLive}
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border cursor-pointer ${
+              style={liveActive ? { boxShadow: `0 0 0 ${Math.min(micLevel * 90, 12)}px rgba(161,0,255,0.25)` } : undefined}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border cursor-pointer transition-[box-shadow] duration-75 ${
                 liveActive
-                  ? 'border-primary bg-primary text-white animate-pulse'
+                  ? 'border-primary bg-primary text-white'
                   : liveStatus === 'connecting'
-                    ? 'border-primary bg-surface-badge text-primary opacity-60'
+                    ? 'border-primary bg-surface-badge text-primary opacity-60 animate-pulse'
                     : 'border-primary bg-surface-badge text-primary hover:bg-primary hover:text-white'
               }`}
               aria-label={liveActive ? 'Terminar conversacion de voz' : 'Hablar por voz'}
@@ -607,7 +525,8 @@ export default function VoiceReservationAssistant() {
             <button
               type="button"
               onClick={sendText}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none bg-primary text-white cursor-pointer hover:bg-primary-dark"
+              disabled={!liveActive && status === 'processing'}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none bg-primary text-white cursor-pointer hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Enviar mensaje"
             >
               <SendIcon size={16} />
