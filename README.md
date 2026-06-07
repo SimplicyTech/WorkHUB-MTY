@@ -1,5 +1,40 @@
 # React + Vite
 
+## Desarrollo local
+
+Por defecto el dev server corre en **HTTPS** (necesario para entrar desde el celular en la red local: el micrófono y el lector QR requieren contexto seguro).
+
+```bash
+# Backend
+cd ../WorkHUB-MTY-Backend
+npm run dev
+
+# Frontend
+cd ../WorkHUB-MTY/client
+npm run dev
+```
+
+URLs locales (desde la misma laptop):
+
+- Frontend: `https://localhost:5173/login`
+- Backend: `https://localhost:5500`
+- `client/.env` debe usar `VITE_API_URL=https://localhost:5500/api/workhub`
+
+Para probar desde celular en la misma red, usa la IP LAN de la laptop (sigue siendo HTTPS):
+
+```bash
+VITE_API_URL=https://10.22.170.3:5500/api/workhub
+```
+
+No uses `localhost` desde el celular; ahí `localhost` significa el propio celular, no la laptop.
+
+Si prefieres trabajar en HTTP plano desde la laptop (sin avisos de certificado), apaga el HTTPS:
+
+```bash
+# Frontend (Windows)
+set VITE_DEV_HTTPS=false&& npm run dev
+```
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
