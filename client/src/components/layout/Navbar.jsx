@@ -36,10 +36,22 @@ export default function Navbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const isQRPage = location.pathname === '/ReadQR'
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [rango, setRango] = useState(null)
   const dropdownRef = useRef(null)
+
+  const LogoContent = (
+  <>
+    <span className="text-primary text-2xl shrink-0">›</span>
+    <span className="hidden min-[380px]:inline text-white text-base">accenture</span>
+    <span className="font-mono text-sm text-text-muted">//</span>
+    <span className="font-heading text-sm text-primary font-semibold truncate">
+      WORKHUB MTY
+    </span>
+  </>
+)
 
   useEffect(() => {
     if (!user?.empleadoId) {
@@ -84,38 +96,42 @@ export default function Navbar() {
     <nav className="bg-surface relative z-40">
       {/* Barra principal */}
       <div className="flex items-center justify-between gap-4 px-4 sm:px-5 md:px-12 py-4">
-        <Link to="/" className="flex min-w-0 items-center gap-2">
-          <span className="text-primary text-2xl shrink-0">›</span>
-          <span className="hidden min-[380px]:inline text-white text-base">accenture</span>
-          <span className="font-mono text-sm text-text-muted">//</span>
-          <span className="font-heading text-sm text-primary font-semibold truncate">WORKHUB MTY</span>
-        </Link>
+        {isQRPage ? (
+          <div className="flex min-w-0 items-center gap-2">
+            {LogoContent}
+          </div>
+        ) : (
+          <Link to="/" className="flex min-w-0 items-center gap-2">
+            {LogoContent}
+          </Link>
+        )}
 
         {/* Links desktop */}
-        <div className="hidden md:flex items-center gap-6">
-          {navLinks.map((link) => {
-            const isActive =
-              link.to === '/reservar'
-                ? ['/reservar', '/estacionamiento', '/confirmacion'].includes(
+        {!isQRPage && (
+          <div className="hidden md:flex items-center gap-6">
+            {navLinks.map((link) => {
+              const isActive =
+                link.to === '/reservar'
+                  ? ['/reservar', '/estacionamiento', '/confirmacion'].includes(
                     location.pathname
                   )
-                : location.pathname === link.to
-            return (
-              <Link
-                key={link.label}
-                to={link.to}
-                className={`font-mono text-xs transition-colors ${
-                  isActive
+                  : location.pathname === link.to
+
+              return (
+                <Link
+                  key={link.label}
+                  to={link.to}
+                  className={`font-mono text-xs transition-colors ${isActive
                     ? 'text-primary font-semibold'
                     : 'text-text-muted hover:text-white'
-                }`}
-              >
-                {link.label}
-              </Link>
-            )
-          })}
-        </div>
-
+                    }`}
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
+          </div>
+        )}
         {/* Acciones desktop + hamburguesa mobile */}
         <div className="flex items-center gap-3">
           {/* Perfil / acciones — visible solo en desktop */}
@@ -128,12 +144,17 @@ export default function Navbar() {
                 >
                   <div className="flex items-center gap-3">
                     <RangoBadge rango={rango} />
+
                     <div className="w-8 h-8 rounded-2xl bg-primary flex items-center justify-center">
                       <span className="font-mono text-[11px] text-white font-bold">
                         {user.initials}
                       </span>
                     </div>
-                    <span className="font-mono text-xs text-white">{user.name}</span>
+
+                    <span className="font-mono text-xs text-white">
+                      {user.name}
+                    </span>
+
                     <span className="text-primary text-sm">▾</span>
                   </div>
                 </button>
@@ -144,14 +165,20 @@ export default function Navbar() {
                       <span className="font-mono text-[13px] text-white font-semibold">
                         {user.name}
                       </span>
+
                       <span className="font-mono text-[11px] text-text-muted">
                         {user.email}
                       </span>
                     </div>
+
                     <div className="h-px bg-surface-badge w-full" />
+
                     <button className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-badge transition-colors cursor-pointer bg-transparent border-none w-full text-left">
-                      <span className="font-mono text-xs text-white">Configuración</span>
+                      <span className="font-mono text-xs text-white">
+                        Configuración
+                      </span>
                     </button>
+
                     <button
                       onClick={() => {
                         logout()
@@ -160,7 +187,9 @@ export default function Navbar() {
                       }}
                       className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-badge transition-colors cursor-pointer bg-transparent border-none w-full text-left"
                     >
-                      <span className="font-mono text-xs text-[#FF4D4D]">Cerrar sesión</span>
+                      <span className="font-mono text-xs text-[#FF4D4D]">
+                        Cerrar sesión
+                      </span>
                     </button>
                   </div>
                 )}
@@ -178,26 +207,33 @@ export default function Navbar() {
           </div>
 
           {/* Botón hamburguesa — solo mobile */}
-          <button
-            className="md:hidden flex flex-col justify-center items-center w-9 h-9 gap-1.5 bg-transparent border-none cursor-pointer"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Abrir menú"
-          >
-            <span
-              className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? 'rotate-45 translate-y-2' : ''}`}
-            />
-            <span
-              className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? 'opacity-0' : ''}`}
-            />
-            <span
-              className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`}
-            />
-          </button>
+          {!isQRPage && (
+            <button
+              className="md:hidden flex flex-col justify-center items-center w-9 h-9 gap-1.5 bg-transparent border-none cursor-pointer"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Abrir menú"
+            >
+              <span
+                className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? 'rotate-45 translate-y-2' : ''
+                  }`}
+              />
+
+              <span
+                className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? 'opacity-0' : ''
+                  }`}
+              />
+
+              <span
+                className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? '-rotate-45 -translate-y-2' : ''
+                  }`}
+              />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Menú mobile desplegable */}
-      {menuOpen && (
+      {menuOpen && !isQRPage && (
         <div className="md:hidden border-t border-surface-badge bg-surface px-5 py-4 flex flex-col gap-1">
           {navLinks.map((link) => (
               <Link
