@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useDashboard } from '../../context/useDashboard'
 import { useAuth } from '../../context/useAuth'
-import { getAllEmpleados, getAllReservaciones, createEmpleado, deleteEmpleado, getAllEspacios, createEspacio, updateEspacioEstado, getPisos, getRoles, getEventos, createEvento, deleteEvento } from '../../services/reservations'
+import { getAllEmpleados, getAllReservaciones, getReportes, createEmpleado, deleteEmpleado, getAllEspacios, createEspacio, updateEspacioEstado, getPisos, getRoles, getEventos, createEvento, deleteEvento } from '../../services/reservations'
 import CustomDatePicker from '../../components/reserve/CustomDatePicker'
 import CustomTimePicker from '../../components/reserve/CustomTimePicker'
 import './AdminDashboard.css'
@@ -203,36 +203,201 @@ function AdminIcon({ name }) {
   )
 }
 
-// ── Reportes data ────────────────────────────────────────
-const reportesSemana = [
-  { day: 'Lun', value: 82 },
-  { day: 'Mar', value: 91 },
-  { day: 'Mie', value: 78 },
-  { day: 'Jue', value: 95 },
-  { day: 'Vie', value: 70 },
-  { day: 'Sab', value: 34 },
-  { day: 'Dom', value: 18 },
-]
+// ── Reportes helpers ──────────────────────────────────────
+const toLocalDateInput = (date) => {
+  const copy = new Date(date)
+  copy.setMinutes(copy.getMinutes() - copy.getTimezoneOffset())
+  return copy.toISOString().slice(0, 10)
+}
 
-const espaciosList = [
-  { id: 'D-301', tipo: 'Escritorio', piso: 'Piso 3', zona: 'Area General', estado: 'Activo' },
-  { id: 'D-302', tipo: 'Escritorio', piso: 'Piso 3', zona: 'Area General', estado: 'Activo' },
-  { id: 'D-105', tipo: 'Escritorio', piso: 'Piso 1', zona: 'Area General', estado: 'Bloqueado' },
-  { id: 'A-05', tipo: 'Cajon Estac.', piso: 'B1', zona: 'Fila A', estado: 'Activo' },
-  { id: 'D-410', tipo: 'Escritorio', piso: 'Piso 4', zona: 'Hot Desking', estado: 'Inactivo' },
-  { id: 'D-504', tipo: 'Escritorio', piso: 'Piso 5', zona: 'Sala Conf.', estado: 'Activo' },
-]
+const getMonthStartInput = () => {
+  const now = new Date()
+  return toLocalDateInput(new Date(now.getFullYear(), now.getMonth(), 1))
+}
 
+const formatDateForReport = (date) => {
+  if (!date) return ''
+  const [year, month, day] = date.split('-')
+  return `${day}/${month}/${year}`
+}
 
+const average = (values) => {
+  if (!values.length) return 0
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
+}
 
-const reportZones = [
-  { zona: 'Area General', piso: 'P3', pct: '91%', tone: 'hot' },
-  { zona: 'Area General', piso: 'P1', pct: '85%', tone: 'hot' },
-  { zona: 'Hot Desking', piso: 'P4', pct: '45%', tone: 'mint' },
-  { zona: 'Sala Conf.', piso: 'P5', pct: '52%', tone: 'mint' },
-]
+const getWeekKey = (dateString) => {
+  const date = new Date(`${dateString}T00:00:00`)
+  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1)
+  return Math.ceil((date.getDate() + firstDay.getDay()) / 7)
+}
+
+const aggregateOcupacion = (items = [], mode = 'dia') => {
+  if (mode === 'dia') {
+    return items.map((item) => ({
+      label: item.label || item.fecha?.slice(5) || '',
+      value: clampPercent(item.occupancyPercent),
+    }))
+  }
+
+  const groups = new Map()
+  items.forEach((item) => {
+    const key = mode === 'semana'
+      ? `Sem ${getWeekKey(item.fecha)}`
+      : item.fecha?.slice(0, 7)
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(clampPercent(item.occupancyPercent))
+  })
+
+  return [...groups.entries()].map(([label, values]) => ({
+    label,
+    value: average(values),
+  }))
+}
+
+const sanitizePdfText = (value) => String(value ?? '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^\x20-\x7E]/g, '')
+
+const escapePdfText = (value) => sanitizePdfText(value).replace(/[\\()]/g, '\\$&')
+
+const buildSimplePdf = (title, lines) => {
+  const pageLines = []
+  const maxLines = 42
+  for (let i = 0; i < lines.length; i += maxLines) {
+    pageLines.push(lines.slice(i, i + maxLines))
+  }
+
+  const objects = [
+    '',
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ]
+  const pageIds = []
+  pageLines.forEach((page, index) => {
+    const content = [
+      'BT',
+      '/F1 18 Tf',
+      `50 780 Td (${escapePdfText(index === 0 ? title : `${title} cont.`)}) Tj`,
+      '/F1 10 Tf',
+      '0 -28 Td',
+      ...page.flatMap((line) => [`(${escapePdfText(line)}) Tj`, '0 -16 Td']),
+      'ET',
+    ].join('\n')
+    const contentId = objects.length
+    objects.push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`)
+    const pageId = objects.length
+    pageIds.push(pageId)
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents ${contentId} 0 R >>`)
+  })
+  objects[2] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pageIds.length} >>`
+
+  const offsets = []
+  let body = '%PDF-1.4\n'
+  objects.forEach((object, index) => {
+    if (index === 0) return
+    offsets[index] = body.length
+    body += `${index} 0 obj\n${object}\nendobj\n`
+  })
+
+  const xrefStart = body.length
+  body += `xref\n0 ${objects.length}\n0000000000 65535 f \n`
+  for (let i = 1; i < objects.length; i += 1) {
+    body += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`
+  }
+  body += `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`
+  return new Blob([body], { type: 'application/pdf' })
+}
+
+const downloadReportPdf = ({ report, filters, selectedFloorLabel }) => {
+  const lines = [
+    `Periodo: ${formatDateForReport(filters.fechaInicio)} - ${formatDateForReport(filters.fechaFin)}`,
+    `Piso: ${selectedFloorLabel || 'Todos los pisos'}`,
+    `Tipo: ${filters.tipo === 'todos' ? 'Todos' : filters.tipo}`,
+    '',
+    'Resumen',
+    `Reservas analizadas: ${report.summary?.totalReservas ?? 0}`,
+    `Espacios considerados: ${report.summary?.totalSpaces ?? 0}`,
+    `No-shows: ${report.summary?.noShows ?? 0}`,
+    `Tasa de no-shows: ${report.summary?.noShowRate ?? 0}%`,
+    `Cambio vs periodo anterior: ${report.summary?.noShowDelta ?? 0} puntos`,
+    '',
+    'Horarios de mayor demanda',
+    ...(report.demandaHoras || []).map((item) => `${item.hora}: ${item.total} reservas`),
+    '',
+    'Zonas mas / menos utilizadas',
+    ...(report.zonasUso || []).map((item) => `${item.zona} / ${item.piso}: ${item.percentage}% (${item.total})`),
+  ]
+  const blob = buildSimplePdf('WorkHub MTY - Reporte de ocupacion', lines)
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `workhub-reporte-${filters.fechaInicio}-${filters.fechaFin}.pdf`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
 
 function ReportesView() {
+  const [filters, setFilters] = useState({
+    fechaInicio: getMonthStartInput(),
+    fechaFin: toLocalDateInput(new Date()),
+    pisoId: 'todos',
+    tipo: 'todos',
+  })
+  const [rangeMode, setRangeMode] = useState('dia')
+  const [report, setReport] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let ignore = false
+    setLoading(true)
+    setError(null)
+
+    getReportes(filters)
+      .then((res) => {
+        if (!ignore) setReport(res)
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setReport(null)
+          setError(err?.error || 'No se pudieron cargar los reportes')
+        }
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [filters])
+
+  const updateFilter = (key, value) => {
+    setFilters((current) => ({ ...current, [key]: value }))
+  }
+
+  const selectedFloorLabel = filters.pisoId === 'todos'
+    ? 'Todos los pisos'
+    : report?.catalogs?.pisos?.find((piso) => String(piso.PisoID) === String(filters.pisoId))?.Nombre
+
+  const ocupacionData = aggregateOcupacion(report?.ocupacionPromedio || [], rangeMode)
+  const noShowDelta = Number(report?.summary?.noShowDelta || 0)
+  const noShowTrendText = noShowDelta === 0
+    ? 'sin cambio vs periodo anterior'
+    : `${noShowDelta > 0 ? '↑' : '↓'} ${Math.abs(noShowDelta).toFixed(1)} pts vs periodo anterior`
+  const maxNoShows = Math.max(...(report?.noShowsPorPiso || []).map((item) => item.noShows), 1)
+  const maxDemand = Math.max(...(report?.demandaHoras || []).map((item) => item.total), 1)
+
+  const handleExportPdf = () => {
+    if (!report) return
+    downloadReportPdf({ report, filters, selectedFloorLabel })
+  }
+
   return (
     <main className="admin-main admin-main--reports">
       <header className="admin-main__header">
@@ -241,55 +406,102 @@ function ReportesView() {
           <h1>REPORTES Y ANALITICA</h1>
         </div>
         <div className="admin-main__actions">
-          <button type="button" className="admin-btn-export admin-btn-export--primary">
+          <button
+            type="button"
+            className="admin-btn-export admin-btn-export--primary"
+            onClick={handleExportPdf}
+            disabled={!report || loading}
+          >
             <AdminIcon name="download" />
             Exportar PDF
-          </button>
-          <button type="button" className="admin-btn-export">
-            <AdminIcon name="download" />
-            Exportar CSV
           </button>
         </div>
       </header>
 
       <section className="admin-filterbar admin-filterbar--reports">
-        <button type="button" className="admin-filter-chip">01/Feb/2026</button>
+        <input
+          className="admin-select admin-select--date"
+          type="date"
+          value={filters.fechaInicio}
+          onChange={(event) => updateFilter('fechaInicio', event.target.value)}
+        />
         <span className="admin-filterbar__arrow">→</span>
-        <button type="button" className="admin-filter-chip">28/Feb/2026</button>
-        <select className="admin-select" defaultValue="todos">
+        <input
+          className="admin-select admin-select--date"
+          type="date"
+          value={filters.fechaFin}
+          onChange={(event) => updateFilter('fechaFin', event.target.value)}
+        />
+        <select
+          className="admin-select"
+          value={filters.pisoId}
+          onChange={(event) => updateFilter('pisoId', event.target.value)}
+        >
           <option value="todos">Todos los pisos</option>
+          {(report?.catalogs?.pisos || []).map((piso) => (
+            <option key={piso.PisoID} value={piso.PisoID}>{piso.Nombre}</option>
+          ))}
         </select>
-        <select className="admin-select" defaultValue="tipo">
-          <option value="tipo">Tipo: Todos</option>
+        <select
+          className="admin-select"
+          value={filters.tipo}
+          onChange={(event) => updateFilter('tipo', event.target.value)}
+        >
+          <option value="todos">Tipo: Todos</option>
+          {(report?.catalogs?.tipos || []).map((tipo) => (
+            <option key={tipo} value={tipo}>Tipo: {tipo}</option>
+          ))}
         </select>
       </section>
+
+      {error && <p className="admin-table-msg admin-table-msg--error">{error}</p>}
 
       <section className="admin-reports-layout">
         <article className="admin-card admin-card--average">
           <div className="admin-card__header">
             <h2>Ocupacion Promedio</h2>
             <div className="admin-segmented" aria-label="Rango de tiempo">
-              <button type="button" className="is-active">Dia</button>
-              <button type="button">Semana</button>
-              <button type="button">Mes</button>
+              {['dia', 'semana', 'mes'].map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={rangeMode === mode ? 'is-active' : ''}
+                  onClick={() => setRangeMode(mode)}
+                >
+                  {mode[0].toUpperCase() + mode.slice(1)}
+                </button>
+              ))}
             </div>
           </div>
           <div className="admin-scatter">
-            {reportesSemana.map((d, index) => (
-              <span
-                key={d.day}
-                className="admin-scatter__point"
-                style={{
-                  left: `${4 + index * 6}%`,
-                  top: `${31 - Math.min(d.value, 95) * 0.18}%`,
-                }}
-              />
-            ))}
-            <div className="admin-scatter__labels">
-              {reportesSemana.map((d) => (
-                <span key={d.day}>{d.day}</span>
-              ))}
-            </div>
+            {loading ? (
+              <div className="admin-empty-state">Cargando ocupacion...</div>
+            ) : ocupacionData.length > 0 ? (
+              <>
+                {ocupacionData.map((item, index) => {
+                  const left = ocupacionData.length === 1 ? 50 : 5 + (index / (ocupacionData.length - 1)) * 90
+                  const top = 84 - clampPercent(item.value) * 0.62
+                  return (
+                    <span
+                      key={`${item.label}-${index}`}
+                      className="admin-scatter__point"
+                      title={`${item.label}: ${formatPercent(item.value)}`}
+                      style={{ left: `${left}%`, top: `${top}%` }}
+                    />
+                  )
+                })}
+                <div
+                  className="admin-scatter__labels"
+                  style={{ gridTemplateColumns: `repeat(${ocupacionData.length}, minmax(0, 1fr))` }}
+                >
+                  {ocupacionData.map((item, index) => (
+                    <span key={`${item.label}-${index}`}>{item.label}</span>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="admin-empty-state">Sin reservaciones en el periodo</div>
+            )}
           </div>
         </article>
 
@@ -297,13 +509,27 @@ function ReportesView() {
           <div className="admin-card__header">
             <h2>Tasa de No-Shows</h2>
           </div>
-          <strong className="admin-no-show__value">6.2%</strong>
-          <p className="admin-no-show__trend">↘ ↓ 1.3% vs mes anterior</p>
-          <p className="admin-no-show__detail">15 no-shows en Feb 2026</p>
+          <strong className="admin-no-show__value">
+            {loading ? '...' : formatPercent(report?.summary?.noShowRate)}
+          </strong>
+          <p className={`admin-no-show__trend ${noShowDelta > 0 ? 'is-up' : ''}`}>
+            {loading ? 'calculando periodo...' : noShowTrendText}
+          </p>
+          <p className="admin-no-show__detail">
+            {report?.summary?.noShows ?? 0} no-shows de {report?.summary?.totalReservas ?? 0} reservas
+          </p>
           <div className="admin-no-show__floors">
             <span>Por piso:</span>
-            <div><small>P3</small><i style={{ width: '86%' }} /></div>
-            <div><small>P1</small><i style={{ width: '72%' }} /></div>
+            {(report?.noShowsPorPiso || []).length > 0 ? (
+              report.noShowsPorPiso.map((item) => (
+                <div key={item.piso}>
+                  <small>{item.piso}</small>
+                  <i style={{ width: `${Math.max(8, (item.noShows / maxNoShows) * 100)}%` }} />
+                </div>
+              ))
+            ) : (
+              <small>Sin no-shows en el periodo</small>
+            )}
           </div>
         </article>
 
@@ -312,12 +538,19 @@ function ReportesView() {
             <h2>Horarios de Mayor Demanda</h2>
           </div>
           <div className="admin-demand-chart">
-            {['07:00', '08:00', '09:00', '10:00', '11:00'].map((hour) => (
-              <div key={hour} className="admin-demand-chart__row">
-                <span>{hour}</span>
-                <i />
+            {(report?.demandaHoras || []).length > 0 ? (
+              report.demandaHoras.map((item) => (
+                <div key={item.hora} className="admin-demand-chart__row">
+                  <span>{item.hora}</span>
+                  <i style={{ width: `${Math.max(8, (item.total / maxDemand) * 100)}%` }} />
+                  <strong>{item.total}</strong>
+                </div>
+              ))
+            ) : (
+              <div className="admin-empty-state admin-empty-state--compact">
+                {loading ? 'Cargando demanda...' : 'Sin demanda en el periodo'}
               </div>
-            ))}
+            )}
           </div>
         </article>
 
@@ -331,13 +564,21 @@ function ReportesView() {
               <span>Piso</span>
               <span>%</span>
             </div>
-            {reportZones.map((zone) => (
-              <div key={`${zone.zona}-${zone.piso}`} className="admin-zone-table__row">
-                <span>{zone.zona}</span>
-                <span>{zone.piso}</span>
-                <strong className={zone.tone === 'hot' ? 'is-hot' : 'is-mint'}>{zone.pct}</strong>
+            {(report?.zonasUso || []).length > 0 ? (
+              report.zonasUso.map((zone) => (
+                <div key={`${zone.zona}-${zone.piso}`} className="admin-zone-table__row">
+                  <span>{zone.zona}</span>
+                  <span>{zone.piso}</span>
+                  <strong className={zone.percentage >= 50 ? 'is-hot' : 'is-mint'}>
+                    {formatPercent(zone.percentage)}
+                  </strong>
+                </div>
+              ))
+            ) : (
+              <div className="admin-empty-state admin-empty-state--compact">
+                {loading ? 'Cargando zonas...' : 'Sin uso registrado'}
               </div>
-            ))}
+            )}
           </div>
         </article>
       </section>

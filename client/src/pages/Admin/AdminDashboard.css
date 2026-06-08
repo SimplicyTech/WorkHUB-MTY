@@ -587,6 +587,12 @@
   background: rgba(177, 0, 255, 0.26);
   border-color: rgba(177, 0, 255, 0.9);
 }
+
+.admin-btn-export:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 .admin-btn-export svg {
   width: 1.1rem;
   height: 1.1rem;
@@ -946,10 +952,9 @@
 .admin-scatter__labels {
   position: absolute;
   left: 0;
-  right: 40%;
-  bottom: 128px;
+  right: 0;
+  bottom: 1.1rem;
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
   padding: 0 0.35rem;
   color: var(--admin-muted);
   font-family: var(--font-mono);
@@ -975,6 +980,10 @@
   margin: 1.85rem 0 1.45rem;
   color: var(--admin-mint);
   font-size: 0.78rem;
+}
+
+.admin-no-show__trend.is-up {
+  color: var(--admin-red);
 }
 
 .admin-no-show__detail {
@@ -1015,12 +1024,18 @@
 
 .admin-demand-chart__row {
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
+  grid-template-columns: 46px minmax(0, 1fr) 34px;
   align-items: center;
   gap: 0.6rem;
   color: var(--admin-muted);
   font-family: var(--font-mono);
   font-size: 0.58rem;
+}
+
+.admin-demand-chart__row strong {
+  color: #fff;
+  font-weight: 600;
+  text-align: right;
 }
 
 .admin-zone-table {

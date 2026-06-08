@@ -38,6 +38,15 @@ export function getAllReservaciones() {
   return apiRequest('/reservaciones')
 }
 
+export function getReportes({ fechaInicio, fechaFin, pisoId = 'todos', tipo = 'todos' }) {
+  const params = new URLSearchParams()
+  if (fechaInicio) params.set('fechaInicio', fechaInicio)
+  if (fechaFin) params.set('fechaFin', fechaFin)
+  if (pisoId) params.set('pisoId', pisoId)
+  if (tipo) params.set('tipo', tipo)
+  return apiRequest(`/reportes?${params.toString()}`)
+}
+
 // ── Espacios ──────────────────────────────────────────────
 
 export function getAllEspacios(pisoId) {
