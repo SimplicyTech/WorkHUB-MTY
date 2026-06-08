@@ -102,8 +102,7 @@
 }
 
 .admin-nav__icon svg,
-.admin-stat svg,
-.admin-fab svg {
+.admin-stat svg {
   width: 100%;
   height: 100%;
 }
@@ -114,7 +113,7 @@
   align-items: center;
   gap: 1rem;
   padding: 1.2rem 1.4rem;
-  background: rgba(161, 0, 255, 0.12);
+  background: #21003a;
 }
 
 .admin-user__avatar {
@@ -535,27 +534,6 @@
   color: #8a73aa;
 }
 
-.admin-fab {
-  position: fixed;
-  right: 1.5rem;
-  bottom: 1.4rem;
-  width: 4.4rem;
-  height: 4.4rem;
-  border: 0;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  background: radial-gradient(circle at 30% 30%, #c74dff, #8d00ff 70%);
-  color: white;
-  box-shadow: 0 20px 40px rgba(141, 0, 255, 0.4);
-  cursor: pointer;
-}
-
-.admin-fab svg {
-  width: 1.8rem;
-  height: 1.8rem;
-}
-
 /* ── Extra stat grid variants ── */
 .admin-stats--5 {
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -787,7 +765,7 @@
   position: sticky;
   top: 0;
   overflow-y: auto;
-  background: linear-gradient(180deg, #21003a 0 10.8%, #08000f 10.8% 94%, #21003a 94%);
+  background: linear-gradient(180deg, #21003a 0 10.8%, #08000f 10.8% 100%);
 }
 
 .admin-brand {

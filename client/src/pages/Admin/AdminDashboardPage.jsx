@@ -12,7 +12,7 @@ const sidebarItems = [
   { label: 'Reportes', icon: 'bars' },
   { label: 'Espacios', icon: 'square' },
   { label: 'Usuarios', icon: 'user' },
-  { label: 'Visitas', icon: 'group' },
+  { label: 'Reservas', icon: 'group' },
   { label: 'Eventos', icon: 'calendar' },
   { label: 'Prediccion IA', icon: 'diamond' },
 ]
@@ -846,7 +846,7 @@ function UsuariosView() {
   )
 }
 
-// ── Visitas data ─────────────────────────────────────────
+// ── Reservas data ────────────────────────────────────────
 function VisitasView() {
   const [reservaciones, setReservaciones] = useState([])
   const [loading, setLoading] = useState(true)
@@ -897,14 +897,8 @@ function VisitasView() {
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// gestión visitas</span>
-          <h1>GESTIÓN DE VISITAS</h1>
-        </div>
-        <div className="admin-main__actions">
-          <button type="button" className="admin-btn-export admin-btn-export--primary">
-            <AdminIcon name="plusBox" />
-            Registrar Visita
-          </button>
+          <span className="admin-main__eyebrow">// gestión reservas</span>
+          <h1>GESTIÓN DE RESERVAS</h1>
         </div>
       </header>
 
@@ -1809,15 +1803,12 @@ export default function AdminDashboardPage() {
           </article>
         </section>
 
-        <button type="button" className="admin-fab" aria-label="Abrir soporte">
-          <AdminIcon name="message" />
-        </button>
       </main>
       )}
       {activePage === 'Reportes' && <ReportesView />}
       {activePage === 'Espacios' && <EspaciosView />}
       {activePage === 'Usuarios' && <UsuariosView />}
-      {activePage === 'Visitas' && <VisitasView />}
+      {activePage === 'Reservas' && <VisitasView />}
       {activePage === 'Eventos' && <EventosView />}
       {activePage === 'Prediccion IA' && <PrediccionIAView />}
     </div>
