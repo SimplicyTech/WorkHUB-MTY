@@ -70,13 +70,6 @@ const loadingStats = emptyStats.map((stat) => ({
 const clampPercent = (value) => Math.min(Math.max(Math.round(Number(value) || 0), 0), 100)
 const formatPercent = (value) => `${clampPercent(value)}%`
 
-const activityColor = (status = '') => {
-  const normalized = status.toLowerCase()
-  if (normalized.includes('cancel') || normalized.includes('no-show')) return '#ff3355'
-  if (normalized.includes('liber') || normalized.includes('dispon')) return '#ffe83c'
-  if (normalized.includes('check-out')) return '#a100ff'
-  return '#16e0a3'
-}
 
 const PISO_ADMIN_FUNCIONAL_ID = 2
 
@@ -1511,10 +1504,24 @@ export default function AdminDashboardPage() {
   const [roles, setRoles] = useState([])
   const { user } = useAuth()
   const { dashboard, loading, error } = useDashboard()
+  const [selectedDashboardFloorId, setSelectedDashboardFloorId] = useState('')
 
   useEffect(() => {
     getRoles().then((res) => setRoles(res.data || [])).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    const floors = dashboard?.floors || []
+    if (floors.length === 0) {
+      setSelectedDashboardFloorId('')
+      return
+    }
+
+    const selectedStillExists = floors.some((floor) => String(floor.pisoId) === String(selectedDashboardFloorId))
+    if (!selectedStillExists) {
+      setSelectedDashboardFloorId(String(floors[0].pisoId))
+    }
+  }, [dashboard?.floors, selectedDashboardFloorId])
 
   if (!user) {
     return <Navigate to="/login" replace />
@@ -1572,52 +1579,40 @@ export default function AdminDashboardPage() {
       ? loadingStats
       : emptyStats
 
-  const dashboardFloors = dashboard?.floors?.length
-    ? dashboard.floors.map((floor) => ({
+  const dashboardFloorOptions = dashboard?.floors || []
+  const selectedDashboardFloor = dashboardFloorOptions.find((floor) => String(floor.pisoId) === String(selectedDashboardFloorId))
+    || dashboardFloorOptions[0]
+    || null
+
+  const dashboardFloors = dashboardFloorOptions.length
+    ? dashboardFloorOptions.map((floor) => ({
         label: floor.label,
         occupied: clampPercent(floor.occupancyPercent),
       }))
     : []
 
-  const dashboardFloorRows = dashboard?.floors?.length
-    ? dashboard.floors.map((floor) => ({
+  const dashboardFloorRows = dashboardFloorOptions.length
+    ? dashboardFloorOptions.map((floor) => ({
         label: floor.label,
         value: formatPercent(floor.occupancyPercent),
         percent: clampPercent(floor.occupancyPercent),
-        accent: floor.label === dashboard.selectedFloor,
+        accent: String(floor.pisoId) === String(selectedDashboardFloor?.pisoId),
       }))
     : []
 
-  const dashboardZones = dashboard?.zones?.length
-    ? dashboard.zones.map((zone) => ({
+  const selectedFloorZones = selectedDashboardFloor
+    ? dashboard?.zonesByFloor?.[String(selectedDashboardFloor.pisoId)] || []
+    : dashboard?.zones || []
+  const dashboardZones = selectedFloorZones.length
+    ? selectedFloorZones.map((zone, index) => ({
         label: zone.label,
-        value: formatPercent(zone.value),
-        color: zone.color,
+        value: formatPercent(zone.occupancyPercent ?? zone.value),
+        color: zone.color || (index === 0 ? '#a100ff' : index === 1 ? '#16e0a3' : '#ff3355'),
       }))
     : []
 
-  const dashboardActivity = dashboard?.recentActivity?.length
-    ? dashboard.recentActivity.map((entry) => ({
-        text: entry.text,
-        time: entry.time,
-        color: activityColor(entry.status),
-      }))
-    : [
-        {
-          text: loading
-            ? 'Cargando datos reales...'
-            : error
-              ? error
-              : isBackendConnected
-                ? 'Backend conectado, sin actividad reciente'
-                : 'Sin datos del backend',
-          time: '',
-          color: error ? '#ff3355' : '#16e0a3',
-        },
-      ]
-
-  const selectedZonePercent = dashboardZones[0]?.value || '0%'
-  const selectedZoneValue = clampPercent(Number.parseInt(selectedZonePercent, 10))
+  const selectedZoneValue = clampPercent(selectedDashboardFloor?.occupancyPercent || 0)
+  const selectedZonePercent = formatPercent(selectedZoneValue)
   const liveStatus = loading
     ? 'Cargando datos...'
     : error
@@ -1756,9 +1751,21 @@ export default function AdminDashboardPage() {
           </article>
 
           <article className="admin-card admin-card--zones">
-            <div className="admin-card__header admin-card__header--stacked">
-              <h2>Ocupacion por Zona</h2>
-              <span>{dashboard?.selectedFloor ? `${dashboard.selectedFloor} seleccionado` : 'Piso 3 seleccionado'}</span>
+            <div className="admin-card__header admin-card__header--zones">
+              <div>
+                <h2>Ocupacion por Zona</h2>
+                <span>{selectedDashboardFloor ? `${selectedDashboardFloor.label} seleccionado` : 'Selecciona un piso'}</span>
+              </div>
+              <select
+                className="admin-select admin-select--floor"
+                value={selectedDashboardFloor?.pisoId ? String(selectedDashboardFloor.pisoId) : ''}
+                onChange={(event) => setSelectedDashboardFloorId(event.target.value)}
+                disabled={dashboardFloorOptions.length === 0}
+              >
+                {dashboardFloorOptions.map((floor) => (
+                  <option key={floor.pisoId} value={floor.pisoId}>{floor.label}</option>
+                ))}
+              </select>
             </div>
 
             <div className="admin-donut">
@@ -1783,22 +1790,6 @@ export default function AdminDashboardPage() {
                   {loading ? 'Cargando zonas...' : 'Sin zonas del backend'}
                 </div>
               )}
-            </div>
-          </article>
-
-          <article className="admin-card admin-card--activity">
-            <div className="admin-card__header">
-              <h2>Actividad Reciente</h2>
-            </div>
-
-            <div className="admin-activity">
-              {dashboardActivity.map((entry) => (
-                <div key={`${entry.text}-${entry.time}`} className="admin-activity__row">
-                  <span className="admin-activity__dot" style={{ backgroundColor: entry.color }} />
-                  <span className="admin-activity__text">{entry.text}</span>
-                  <span className="admin-activity__time">{entry.time}</span>
-                </div>
-              ))}
             </div>
           </article>
         </section>
