@@ -24,6 +24,20 @@ function mapEstadoToStatus(espacio) {
   return 'available'
 }
 
+// El FloorMap posiciona cada celda por su orden en el arreglo, así que un
+// espacio repetido recorre todo el cluster. Nos quedamos con una sola fila
+// por EspacioID (la ocupada/bloqueada tiene prioridad sobre la disponible).
+function dedupeEspacios(espacios) {
+  const byId = new Map()
+  for (const e of espacios || []) {
+    const prev = byId.get(e.EspacioID)
+    if (!prev || (mapEstadoToStatus(prev) === 'available' && mapEstadoToStatus(e) !== 'available')) {
+      byId.set(e.EspacioID, e)
+    }
+  }
+  return [...byId.values()]
+}
+
 function mapEspaciosToDesks(espacios) {
   return (espacios || [])
     .filter((e) => {
@@ -147,8 +161,9 @@ export default function ReservePage() {
         filters.exitTime,
         filters.floor
       )
-      const desks = mapEspaciosToDesks(res.data || [])
-      const salas = mapEspaciosToSalas(res.data || [])
+      const espacios = dedupeEspacios(res.data || [])
+      const desks = mapEspaciosToDesks(espacios)
+      const salas = mapEspaciosToSalas(espacios)
       setDeskData(desks)
       setSalasData(salas)
       setStats(res.stats || null)

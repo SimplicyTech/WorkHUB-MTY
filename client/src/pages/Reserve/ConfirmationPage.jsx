@@ -73,7 +73,14 @@ export default function ConfirmationPage() {
 
         const existingOverlap = (reservationsRes.data || []).some((r) => {
           if (getDateKey(r.Fecha) !== currentDateKey) return false
-          if (classifyReservation(r) === 'cancelled') return false
+          // Ignora reservas hechas para visitantes: no ocupan tu agenda.
+          if (r.VisitaID != null) return false
+          // Solo bloquea el solapamiento con una reservación VIGENTE
+          // (Próxima / En periodo de gracia / Activa). Las terminadas
+          // (Cancelada, Completada, Liberada/no-show) liberan su horario,
+          // así que una vez que acabas una puedes reservar de nuevo.
+          const cat = classifyReservation(r)
+          if (cat !== 'upcoming' && cat !== 'active') return false
 
           const existingStart = parseTimeToMinutes(r.HoraInicio)
           const existingEnd = parseTimeToMinutes(r.HoraFin)
