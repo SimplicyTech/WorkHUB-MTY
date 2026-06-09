@@ -572,6 +572,11 @@
   padding-right: 0.55rem;
 }
 
+/* contenedor del CustomDatePicker en el filterbar de reportes */
+.admin-datepicker {
+  min-width: 185px;
+}
+
 .admin-btn-export {
   display: inline-flex;
   align-items: center;
@@ -936,6 +941,11 @@
   color: #fff;
 }
 
+.admin-segmented button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .admin-scatter {
   position: relative;
   height: 344px;
@@ -951,6 +961,25 @@
   border-radius: 999px;
   background: #a100ff;
   box-shadow: 0 0 18px rgba(161, 0, 255, 0.75);
+  /* left/top apuntan al CENTRO del punto, no a su esquina */
+  transform: translate(-50%, -50%);
+}
+
+/* líneas de referencia horizontales del eje Y */
+.admin-scatter__gridline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.admin-scatter__gridline span {
+  position: absolute;
+  left: 8px;
+  top: -13px;
+  color: var(--admin-muted);
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
 }
 
 .admin-scatter__labels {
@@ -959,10 +988,16 @@
   right: 0;
   bottom: 1.1rem;
   display: grid;
-  padding: 0 0.35rem;
   color: var(--admin-muted);
   font-family: var(--font-mono);
   font-size: 0.55rem;
+}
+
+/* Cada label centrado en su celda; el punto usa ese mismo centro */
+.admin-scatter__labels span {
+  min-width: 0;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .admin-no-show__value {
