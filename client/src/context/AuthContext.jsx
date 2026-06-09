@@ -23,6 +23,8 @@ export function AuthProvider({ children }) {
     try {
       const res = await loginRequest(email, password)
       const data = res.data || {}
+      setToken(res.token)
+
       const userData = {
         empleadoId: data.empleadoId,
         name: data.nombre,

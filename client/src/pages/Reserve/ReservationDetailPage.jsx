@@ -250,7 +250,6 @@ export default function ReservationDetailPage() {
   const canCancel = estatusActual === 'próxima' || estatusActual === 'proxima'
   // El botón de check-in se muestra durante los últimos 5 min antes de la
   // hora de inicio (estatus 'Próxima') y durante el periodo de gracia.
-  const canCheckIn = inEarlyCheckInWindow || estatusActual === 'en periodo de gracia'
   const canCheckOut = estatusActual === 'activa'
 
   if (loading) {
@@ -323,7 +322,7 @@ export default function ReservationDetailPage() {
   const elapsedSeconds = Math.floor((elapsedMs % 60_000) / 1000)
   const sessionFrozen = sessionShown && (isCompleted || !!checkOutAt || (endDate && now >= endDate))
 
-  return (
+  return ( 
     <div className="min-h-[calc(100dvh-64px)] bg-black px-6 py-8 lg:px-12">
       <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
         {/* Header */}
@@ -509,17 +508,6 @@ export default function ReservationDetailPage() {
                   style={{ backgroundColor: 'rgba(255,50,70,0.20)' }}
                 >
                   Cancelar
-                </button>
-              )}
-              {canCheckIn && (
-                <button
-                  type="button"
-                  onClick={handleCheckIn}
-                  disabled={checkingIn}
-                  className="flex h-14 cursor-pointer items-center justify-center rounded-lg border border-[#05f0a5] px-8 font-heading text-base font-semibold uppercase text-[#05f0a5] transition-colors hover:bg-[rgba(5,240,165,0.32)] disabled:cursor-not-allowed disabled:opacity-60"
-                  style={{ backgroundColor: 'rgba(5,240,165,0.20)' }}
-                >
-                  {checkingIn ? 'Registrando...' : 'Hacer Check-in'}
                 </button>
               )}
               {canCheckOut && (
