@@ -281,11 +281,21 @@ const average = (values) => {
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
 }
 
+// Agrupa por el lunes de la semana (dd/mm) para que semanas de meses
+// distintos no se mezclen entre sí cuando el rango cruza de mes.
 const getWeekKey = (dateString) => {
   const date = new Date(`${dateString}T00:00:00`)
-  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1)
-  return Math.ceil((date.getDate() + firstDay.getDay()) / 7)
+  date.setDate(date.getDate() - ((date.getDay() + 6) % 7))
+  const dd = String(date.getDate()).padStart(2, '0')
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  return `Sem ${dd}/${mm}`
 }
+
+// Máximo de puntos que la gráfica de ocupación pinta sin saturarse;
+// los modos que generen más quedan deshabilitados. Semana tolera menos
+// porque sus labels ("Sem dd/mm") son más anchos.
+const MAX_CHART_POINTS = { dia: 31, semana: 18, mes: 31 }
+const RANGE_MODES = ['dia', 'semana', 'mes']
 
 const aggregateOcupacion = (items = [], mode = 'dia') => {
   if (mode === 'dia') {
@@ -298,7 +308,7 @@ const aggregateOcupacion = (items = [], mode = 'dia') => {
   const groups = new Map()
   items.forEach((item) => {
     const key = mode === 'semana'
-      ? `Sem ${getWeekKey(item.fecha)}`
+      ? getWeekKey(item.fecha)
       : item.fecha?.slice(0, 7)
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key).push(clampPercent(item.occupancyPercent))
@@ -436,11 +446,46 @@ function ReportesView() {
     setFilters((current) => ({ ...current, [key]: value }))
   }
 
+  // Los reportes permiten consultar hasta 12 meses hacia atrás; la
+  // granularidad de la gráfica se adapta sola al tamaño del rango.
+  const minReportDate = (() => {
+    const d = new Date()
+    d.setMonth(d.getMonth() - 12)
+    return toLocalDateInput(d)
+  })()
+
   const selectedFloorLabel = filters.pisoId === 'todos'
     ? 'Todos los pisos'
     : report?.catalogs?.pisos?.find((piso) => String(piso.PisoID) === String(filters.pisoId))?.Nombre
 
-  const ocupacionData = aggregateOcupacion(report?.ocupacionPromedio || [], rangeMode)
+  const ocupacionPorModo = {
+    dia: aggregateOcupacion(report?.ocupacionPromedio || [], 'dia'),
+    semana: aggregateOcupacion(report?.ocupacionPromedio || [], 'semana'),
+    mes: aggregateOcupacion(report?.ocupacionPromedio || [], 'mes'),
+  }
+  const modeDisponible = (mode) => ocupacionPorModo[mode].length <= MAX_CHART_POINTS[mode]
+  const ocupacionData = ocupacionPorModo[rangeMode]
+
+  // Escala Y dinámica: el eje se ajusta al rango real de los datos (con un
+  // margen) en lugar de ir fijo de 0 a 100, para que las diferencias entre
+  // puntos se aprecien aunque la ocupación se mueva en una banda angosta.
+  // Las líneas de referencia con su % conservan la lectura absoluta.
+  const chartValues = ocupacionData.map((item) => clampPercent(item.value))
+  const chartMin = chartValues.length ? Math.min(...chartValues) : 0
+  const chartMax = chartValues.length ? Math.max(...chartValues) : 100
+  const chartPad = Math.max((chartMax - chartMin) * 0.15, 2)
+  const domainMin = Math.max(0, chartMin - chartPad)
+  const domainMax = Math.min(100, chartMax + chartPad)
+  // Banda vertical del lienzo: 12% (arriba) a 80% (abajo).
+  const yForValue = (value) => 80 - ((value - domainMin) / (domainMax - domainMin)) * 68
+
+  // Si el rango elegido genera demasiados puntos para el modo actual,
+  // brincamos a la granularidad más fina que sí quepa (dia -> semana -> mes).
+  useEffect(() => {
+    if (modeDisponible(rangeMode)) return
+    setRangeMode(RANGE_MODES.find(modeDisponible) || 'mes')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [report, rangeMode])
   const noShowDelta = Number(report?.summary?.noShowDelta || 0)
   const noShowTrendText = noShowDelta === 0
     ? 'sin cambio vs periodo anterior'
@@ -473,19 +518,22 @@ function ReportesView() {
       </header>
 
       <section className="admin-filterbar admin-filterbar--reports">
-        <input
-          className="admin-select admin-select--date"
-          type="date"
-          value={filters.fechaInicio}
-          onChange={(event) => updateFilter('fechaInicio', event.target.value)}
-        />
+        <div className="admin-datepicker">
+          <CustomDatePicker
+            value={filters.fechaInicio}
+            onChange={(value) => updateFilter('fechaInicio', value)}
+            min={minReportDate}
+            max={filters.fechaFin}
+          />
+        </div>
         <span className="admin-filterbar__arrow">→</span>
-        <input
-          className="admin-select admin-select--date"
-          type="date"
-          value={filters.fechaFin}
-          onChange={(event) => updateFilter('fechaFin', event.target.value)}
-        />
+        <div className="admin-datepicker">
+          <CustomDatePicker
+            value={filters.fechaFin}
+            onChange={(value) => updateFilter('fechaFin', value)}
+            min={filters.fechaInicio}
+          />
+        </div>
         <select
           className="admin-select"
           value={filters.pisoId}
@@ -515,16 +563,21 @@ function ReportesView() {
           <div className="admin-card__header">
             <h2>Ocupacion Promedio</h2>
             <div className="admin-segmented" aria-label="Rango de tiempo">
-              {['dia', 'semana', 'mes'].map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={rangeMode === mode ? 'is-active' : ''}
-                  onClick={() => setRangeMode(mode)}
-                >
-                  {mode[0].toUpperCase() + mode.slice(1)}
-                </button>
-              ))}
+              {RANGE_MODES.map((mode) => {
+                const disponible = modeDisponible(mode)
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    disabled={!disponible}
+                    title={disponible ? undefined : 'El rango de fechas es demasiado largo para esta vista'}
+                    className={rangeMode === mode ? 'is-active' : ''}
+                    onClick={() => setRangeMode(mode)}
+                  >
+                    {mode[0].toUpperCase() + mode.slice(1)}
+                  </button>
+                )
+              })}
             </div>
           </div>
           <div className="admin-scatter">
@@ -532,9 +585,20 @@ function ReportesView() {
               <div className="admin-empty-state">Cargando ocupacion...</div>
             ) : ocupacionData.length > 0 ? (
               <>
+                {[domainMax, (domainMin + domainMax) / 2, domainMin].map((v, i) => (
+                  <div
+                    key={`grid-${i}`}
+                    className="admin-scatter__gridline"
+                    style={{ top: `${yForValue(v)}%` }}
+                  >
+                    <span>{Math.round(v)}%</span>
+                  </div>
+                ))}
                 {ocupacionData.map((item, index) => {
-                  const left = ocupacionData.length === 1 ? 50 : 5 + (index / (ocupacionData.length - 1)) * 90
-                  const top = 84 - clampPercent(item.value) * 0.62
+                  // Mismo eje X que los labels: el centro de la celda i del
+                  // grid de abajo, para que cada punto caiga sobre su label.
+                  const left = ((index + 0.5) / ocupacionData.length) * 100
+                  const top = yForValue(clampPercent(item.value))
                   return (
                     <span
                       key={`${item.label}-${index}`}
