@@ -28,7 +28,7 @@ export async function apiRequest(path, { method = 'GET', body, auth = true } = {
   const data = await res.json().catch(() => ({}))
 
   if (!res.ok) {
-    if (res.status === 401 || res.status === 403) clearToken()
+    if (res.status === 401) clearToken()
     throw {
       ...data,
       error:

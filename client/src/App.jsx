@@ -18,6 +18,7 @@ import PuntosPage from './pages/Reserve/PuntosPage'
 import InvitacionEnviadaPage from './pages/Reserve/InvitacionEnviadaPage'
 import VisitaConfirmacionPage from './pages/Visita/VisitaConfirmacionPage'
 import ReadQRPage from './pages/ReadQR/Readqr'
+import GuardOnly from './components/auth/GuardOnly'
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
       <DashboardProvider>
         <LecturaProvider>
       <BrowserRouter>
+      <GuardOnly/>
         <Routes>
           <Route element={<MainLayout />}>
             <Route path="/" element={<LandingPage />} />
