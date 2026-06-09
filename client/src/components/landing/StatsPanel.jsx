@@ -1,7 +1,7 @@
 import { useDashboard } from '../../context/useDashboard'
 
 export default function StatsPanel() {
-  const { data, loading } = useDashboard()
+  const { data, dashboard, loading } = useDashboard()
 
   if (loading) {
     return (
@@ -13,20 +13,25 @@ export default function StatsPanel() {
 
 
   const total = data.find(r => r.Piso === 'TOTAL')
+  const ds = dashboard?.stats
+
+  // Cajones libres = capacidad total de estacionamiento − ocupados ahora mismo.
+  const parkingTotal = ds?.parkingTotal || 0
+  const parkingLibres = Math.max(parkingTotal - (ds?.parkingOccupied || 0), 0)
 
   const stats = [
     {
-      label: 'escritorios_libres',
+      label: 'Escritorios Libres',
       value: total?.disponibles || 0,
       color: 'text-accent'
     },
     {
-      label: 'estacionamiento',
-      value: total?.total || 0,
+      label: 'Estacionamiento Libre',
+      value: parkingLibres,
       color: 'text-primary'
     },
     {
-      label: 'ocupación_hoy',
+      label: 'Ocupación',
       value: total
         ? Math.round((total.ocupados / total.total) * 100) + '%'
         : '0%',
