@@ -138,7 +138,7 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
         <div
           className="rounded-lg border border-[#200040] relative"
           style={{
-            width: '115%',
+            width: '100%',
             minWidth: 1120,
             height: 550,
             backgroundColor: '#0a0014',

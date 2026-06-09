@@ -138,9 +138,9 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
         <div
           className="rounded-lg border border-[#200040] relative"
           style={{
-            width: '120%',
-            minWidth: 1160,
-            height: 798,
+            width: '110%',
+            minWidth: 1150,
+            height: 700,
             backgroundColor: '#0a0014',
             flexShrink: 0,
           }}
@@ -186,8 +186,8 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
             const cellH = 25
             const gap = 6
             const clusterBases = {
-              'MZ01_MZ06': { left: 20, top: 40, cols: 6 },
-              'MZ07_MZ16': { left: 20, top: 90, cols: 5 },
+              'MZ01_MZ06': { left: 20, top: 55, cols: 6 },
+              'MZ07_MZ16': { left: 20, top: 105, cols: 5 },
               'MZ17_MZ21': { left: 150, top: 200, cols: 5 },
               'MZ22_MZ29': { left: 160, top: 300, cols: 4 },
               'MZ30_MZ33': { left: 160, top: 400, cols: 2 },
@@ -201,8 +201,8 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
               'MZ82_MZ85': { left: 990, top: 400, cols: 2 },
               'MZ86_MZ93': { left: 880, top: 300, cols: 4 },
               'MZ94_MZ98': { left: 840, top: 200, cols: 5 },
-              'MZ99_MZ104': { left: 800, top: 40, cols: 6 },
-              'MZ105_MZ114': { left: 856, top: 90, cols: 5 },
+              'MZ99_MZ104': { left: 800, top: 55, cols: 6 },
+              'MZ105_MZ114': { left: 856, top: 105, cols: 5 },
             }
 
             return desks.map((d) => {

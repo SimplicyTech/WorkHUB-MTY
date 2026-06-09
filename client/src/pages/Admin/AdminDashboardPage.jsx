@@ -14,8 +14,64 @@ const sidebarItems = [
   { label: 'Usuarios', icon: 'user' },
   { label: 'Reservas', icon: 'group' },
   { label: 'Eventos', icon: 'calendar' },
-  { label: 'Prediccion IA', icon: 'diamond' },
 ]
+
+// Filas por página en las tablas del panel.
+const ADMIN_PAGE_SIZE = 15
+
+// Lista compacta de páginas con elipsis cuando hay muchas (1 … 4 5 6 … 20).
+function buildPageList(totalPages, current) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1)
+  }
+  const set = new Set([1, totalPages, current, current - 1, current + 1])
+  const sorted = [...set].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b)
+  const out = []
+  let prev = 0
+  for (const p of sorted) {
+    if (p - prev > 1) out.push('…')
+    out.push(p)
+    prev = p
+  }
+  return out
+}
+
+// Footer de paginación reutilizable. Recibe la página actual (ya acotada),
+// el total filtrado y el total real, y notifica cambios vía onPage.
+function AdminPagination({ page, filteredTotal, total, onPage, noun, pageSize = ADMIN_PAGE_SIZE }) {
+  const totalPages = Math.max(1, Math.ceil(filteredTotal / pageSize))
+  const current = Math.min(Math.max(1, page), totalPages)
+  const from = filteredTotal === 0 ? 0 : (current - 1) * pageSize + 1
+  const to = Math.min(current * pageSize, filteredTotal)
+  const extra = filteredTotal !== total ? ` (filtrados de ${total})` : ''
+  return (
+    <div className="admin-pagination">
+      <span>
+        Mostrando {from}{from !== to ? `–${to}` : ''} de {filteredTotal} {noun}{extra}
+      </span>
+      {totalPages > 1 && (
+        <div>
+          <button type="button" onClick={() => onPage(current - 1)} disabled={current <= 1} aria-label="Anterior">‹</button>
+          {buildPageList(totalPages, current).map((p, i) =>
+            p === '…' ? (
+              <span key={`gap-${i}`} className="admin-pagination__gap" aria-hidden="true">…</span>
+            ) : (
+              <button
+                key={p}
+                type="button"
+                className={p === current ? 'is-active' : ''}
+                onClick={() => onPage(p)}
+              >
+                {p}
+              </button>
+            )
+          )}
+          <button type="button" onClick={() => onPage(current + 1)} disabled={current >= totalPages} aria-label="Siguiente">›</button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const emptyStats = [
   {
@@ -126,7 +182,6 @@ function AdminIcon({ name }) {
         <path {...common} d="M4.5 9.5h15" />
       </>
     ),
-    diamond: <path {...common} d="m12 4 8 8-8 8-8-8 8-8Z" />,
     desktop: (
       <>
         <rect {...common} x="4" y="5" width="16" height="11" rx="2" />
@@ -402,7 +457,6 @@ function ReportesView() {
     <main className="admin-main admin-main--reports">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// reportes</span>
           <h1>REPORTES Y ANALITICA</h1>
         </div>
         <div className="admin-main__actions">
@@ -655,6 +709,19 @@ function EspaciosView() {
     return matchSearch && matchTipo && matchPiso && matchEstado
   })
 
+  const [page, setPage] = useState(1)
+  // Reset a la página 1 cuando cambian los filtros (patrón "ajustar estado
+  // en render" de React, en vez de un efecto).
+  const filterKey = `${search}|${filtroTipo}|${filtroPiso}|${filtroEstado}`
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey)
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey)
+    setPage(1)
+  }
+  const totalPages = Math.max(1, Math.ceil(filtrados.length / ADMIN_PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const paginados = filtrados.slice((currentPage - 1) * ADMIN_PAGE_SIZE, currentPage * ADMIN_PAGE_SIZE)
+
   const handleFormChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }))
 
   const handleSubmit = async (e) => {
@@ -696,7 +763,6 @@ function EspaciosView() {
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// gestión espacios</span>
           <h1>GESTION DE ESPACIOS</h1>
         </div>
       </header>
@@ -743,7 +809,7 @@ function EspaciosView() {
                 </tr>
               </thead>
               <tbody>
-                {filtrados.map((e) => {
+                {paginados.map((e) => {
                   const estadoActual = e.Estado || 'Activo';
                   return (
                     <tr key={e.EspacioID}>
@@ -774,9 +840,13 @@ function EspaciosView() {
           </div>
         )}
         {filtroPiso && !loadingEspacios && !error && (
-          <div className="admin-pagination">
-            <span>Mostrando {filtrados.length} de {espacios.length} espacios</span>
-          </div>
+          <AdminPagination
+            page={currentPage}
+            filteredTotal={filtrados.length}
+            total={espacios.length}
+            onPage={setPage}
+            noun="espacios"
+          />
         )}
       </section>
 
@@ -869,6 +939,17 @@ function UsuariosView() {
     return coincideBusqueda && coincideRol
   })
 
+  const [page, setPage] = useState(1)
+  const filterKey = `${search}|${filtroRol}`
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey)
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey)
+    setPage(1)
+  }
+  const totalPages = Math.max(1, Math.ceil(filtrados.length / ADMIN_PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const paginados = filtrados.slice((currentPage - 1) * ADMIN_PAGE_SIZE, currentPage * ADMIN_PAGE_SIZE)
+
   const handleFormChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
 
   const handleSubmit = async (e) => {
@@ -921,7 +1002,6 @@ function UsuariosView() {
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// gestión usuarios</span>
           <h1>GESTION DE USUARIOS</h1>
         </div>
         <div className="admin-main__actions">
@@ -967,7 +1047,7 @@ function UsuariosView() {
                 </tr>
               </thead>
               <tbody>
-                {filtrados.map((u) => (
+                {paginados.map((u) => (
                   <tr key={u.EmpleadoID}>
                     <td className="admin-table__id">U-{u.EmpleadoID}</td>
                     <td>{u.Nombre}</td>
@@ -1005,9 +1085,13 @@ function UsuariosView() {
           </div>
         )}
         {!loading && !error && (
-          <div className="admin-pagination">
-            <span>Mostrando {filtrados.length} de {empleados.length} empleados</span>
-          </div>
+          <AdminPagination
+            page={currentPage}
+            filteredTotal={filtrados.length}
+            total={empleados.length}
+            onPage={setPage}
+            noun="empleados"
+          />
         )}
       </section>
 
@@ -1137,6 +1221,17 @@ function VisitasView() {
     })
     .sort((a, b) => Number(b.ReservacionID) - Number(a.ReservacionID))
 
+  const [page, setPage] = useState(1)
+  const filterKey = `${search}|${filtroEstatus}|${filtroFecha}`
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey)
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey)
+    setPage(1)
+  }
+  const totalPages = Math.max(1, Math.ceil(filtradas.length / ADMIN_PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const paginadas = filtradas.slice((currentPage - 1) * ADMIN_PAGE_SIZE, currentPage * ADMIN_PAGE_SIZE)
+
   const fmtHora = (h) => (h ? String(h).slice(0, 5) : '—')
   const fmtFecha = (f) => {
     if (!f) return '—'
@@ -1148,7 +1243,6 @@ function VisitasView() {
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// gestión reservas</span>
           <h1>GESTIÓN DE RESERVAS</h1>
         </div>
       </header>
@@ -1210,7 +1304,7 @@ function VisitasView() {
                 </tr>
               </thead>
               <tbody>
-                {filtradas.map((r) => (
+                {paginadas.map((r) => (
                   <tr key={r.ReservacionID}>
                     <td className="admin-table__id">R-{r.ReservacionID}</td>
                     <td>{r.EmpleadoNombre || '—'}</td>
@@ -1238,9 +1332,13 @@ function VisitasView() {
           </div>
         )}
         {!loading && !error && (
-          <div className="admin-pagination">
-            <span>Mostrando {filtradas.length} de {reservaciones.length} reservaciones ordenadas por ID</span>
-          </div>
+          <AdminPagination
+            page={currentPage}
+            filteredTotal={filtradas.length}
+            total={reservaciones.length}
+            onPage={setPage}
+            noun="reservaciones"
+          />
         )}
       </section>
 
@@ -1328,6 +1426,16 @@ function EventosView() {
     return nombre.includes(search.toLowerCase()) || motivo.includes(search.toLowerCase())
   })
 
+  const [page, setPage] = useState(1)
+  const [prevSearch, setPrevSearch] = useState(search)
+  if (search !== prevSearch) {
+    setPrevSearch(search)
+    setPage(1)
+  }
+  const totalPages = Math.max(1, Math.ceil(filtrados.length / ADMIN_PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const paginados = filtrados.slice((currentPage - 1) * ADMIN_PAGE_SIZE, currentPage * ADMIN_PAGE_SIZE)
+
   const handleFormChange = (e) => {
     const { name, value, type, checked } = e.target
     setForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }))
@@ -1406,7 +1514,6 @@ function EventosView() {
     <main className="admin-main admin-main--management">
       <header className="admin-main__header">
         <div>
-          <span className="admin-main__eyebrow">// gestión eventos</span>
           <h1>GESTIÓN DE EVENTOS</h1>
         </div>
         <div className="admin-main__actions">
@@ -1464,7 +1571,7 @@ function EventosView() {
                 </tr>
               </thead>
               <tbody>
-                {filtrados.map((e) => {
+                {paginados.map((e) => {
                   const estado = estadoEvento(e)
                   return (
                   <tr key={e.EventoID}>
@@ -1504,9 +1611,13 @@ function EventosView() {
           </div>
         )}
         {!loading && !error && (
-          <div className="admin-pagination">
-            <span>Mostrando {filtrados.length} de {eventos.length} eventos</span>
-          </div>
+          <AdminPagination
+            page={currentPage}
+            filteredTotal={filtrados.length}
+            total={eventos.length}
+            onPage={setPage}
+            noun="eventos"
+          />
         )}
       </section>
 
@@ -1660,99 +1771,6 @@ function EventosView() {
           </div>
         </div>
       )}
-
-    </main>
-  )
-}
-
-// ── Prediccion IA data ────────────────────────────────────
-const iaScatterPoints = [
-  { dia: 'Lun 09', x: 14, y: 62 },
-  { dia: 'Mar 10', x: 27, y: 50 },
-  { dia: 'Mié 11', x: 40, y: 57 },
-  { dia: 'Jue 12', x: 54, y: 38 },
-  { dia: 'Vie 13', x: 67, y: 28 },
-  { dia: 'Sáb 14', x: 80, y: 50 },
-  { dia: 'Dom 15', x: 90, y: 70 },
-]
-
-const iaInsights = [
-  {
-    titulo: 'Alta Demanda el Jueves 12',
-    texto: 'Se proyecta un 92% de ocupación en Piso 3 y Piso 4. Sugerimos habilitar hot-desking extra.',
-    tipo: 'alerta',
-    accion: 'Habilitar espacios',
-  },
-  {
-    titulo: 'Baja Ocupación el Viernes',
-    texto: 'Piso 1 proyecta < 30%. Puede considerar cierre por ahorro de energía.',
-    tipo: 'mint',
-    accion: null,
-  },
-  {
-    titulo: 'Optimización de Limpieza',
-    texto: 'Zonas B y C del Piso 2 no tendrán uso el fin de semana.',
-    tipo: 'violet',
-    accion: null,
-  },
-]
-
-function PrediccionIAView() {
-  return (
-    <main className="admin-main admin-main--ia">
-      <header className="admin-main__header">
-        <div>
-          <span className="admin-main__eyebrow">// predicción IA</span>
-          <h1>PREDICCIÓN DE OCUPACIÓN</h1>
-        </div>
-        <div className="admin-main__actions">
-          <button type="button" className="admin-btn-export">
-            Proyección: Próximos 7 Días
-          </button>
-        </div>
-      </header>
-
-      <div className="admin-ia-layout">
-        <article className="admin-card admin-ia-chart-card">
-          <div className="admin-card__header">
-            <h2>Ocupación Proyectada vs Capacidad</h2>
-          </div>
-          <div className="admin-ia-scatter">
-            {iaScatterPoints.map((p) => (
-              <span
-                key={p.dia}
-                className="admin-ia-scatter__point"
-                style={{ left: `${p.x}%`, top: `${p.y}%` }}
-                title={`${p.dia}: ~${Math.round(100 - p.y)}%`}
-              />
-            ))}
-            <div className="admin-ia-scatter__capacity">Capacidad Max 100%</div>
-            <div className="admin-ia-scatter__xaxis">
-              {iaScatterPoints.map((p) => (
-                <span key={p.dia}>{p.dia}</span>
-              ))}
-            </div>
-          </div>
-        </article>
-
-        <aside className="admin-ia-insights">
-          <h2 className="admin-ia-insights__title">Insights y Recomendaciones</h2>
-          {iaInsights.map((ins) => (
-            <div key={ins.titulo} className={`admin-ia-insight admin-ia-insight--${ins.tipo}`}>
-              <div className="admin-ia-insight__header">
-                <span className="admin-ia-insight__icon">
-                  {ins.tipo === 'alerta' ? '⚠' : ins.tipo === 'mint' ? '↘' : '▷'}
-                </span>
-                <strong>{ins.titulo}</strong>
-              </div>
-              <p>{ins.texto}</p>
-              {ins.accion && (
-                <button type="button" className="admin-ia-insight__btn">{ins.accion}</button>
-              )}
-            </div>
-          ))}
-        </aside>
-      </div>
 
     </main>
   )
@@ -1933,7 +1951,6 @@ export default function AdminDashboardPage() {
       <main className="admin-main">
         <header className="admin-main__header">
           <div>
-            <span className="admin-main__eyebrow">// dashboard ocupación</span>
             <h1>OCUPACION EN TIEMPO REAL</h1>
           </div>
           <div className={liveClassName}>
@@ -2060,7 +2077,6 @@ export default function AdminDashboardPage() {
       {activePage === 'Usuarios' && <UsuariosView />}
       {activePage === 'Reservas' && <VisitasView />}
       {activePage === 'Eventos' && <EventosView />}
-      {activePage === 'Prediccion IA' && <PrediccionIAView />}
     </div>
   )
 }

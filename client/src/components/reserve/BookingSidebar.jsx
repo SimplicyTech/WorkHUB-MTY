@@ -80,6 +80,9 @@ export default function BookingSidebar({
   const [pisos, setPisos] = useState([])
   const [rango, setRango] = useState(null)
   const [fechaBloqueada, setFechaBloqueada] = useState(null) // { motivo } o null
+  const [reserveFor, setReserveFor] = useState('me') // 'me' | 'visitor'
+  const [visitor, setVisitor] = useState({ nombre: '', correo: '', empresa: '' })
+  const [timeError, setTimeError] = useState('')
 
   useEffect(() => {
     if (!user?.empleadoId) return
@@ -102,8 +105,10 @@ export default function BookingSidebar({
 
   // Verifica si el empleado puede reservar en el rango horario seleccionado.
   // Permite el mismo día siempre que no haya solapamiento con otra reservación.
+  // Solo aplica al reservar para uno mismo: una reserva para visitante NO
+  // ocupa tu agenda, así que no bloquea tus propias reservas (ni viceversa).
   useEffect(() => {
-    if (!user?.empleadoId || !date) {
+    if (!user?.empleadoId || !date || reserveFor !== 'me') {
       setFechaBloqueada(null)
       return
     }
@@ -122,7 +127,15 @@ export default function BookingSidebar({
         const currentDate = date
         const overlap = (res.data || []).some((r) => {
           if (getDateKey(r.Fecha) !== currentDate) return false
-          if (classifyReservation(r) === 'cancelled') return false
+          // Ignora las reservas hechas para visitantes (VisitaID no nulo):
+          // son de otra persona y no ocupan la agenda del anfitrión.
+          if (r.VisitaID != null) return false
+          // Solo bloquea el solapamiento con una reservación VIGENTE
+          // (Próxima / En periodo de gracia / Activa). Las terminadas
+          // (Cancelada, Completada, Liberada/no-show) liberan su horario,
+          // así que una vez que acabas una puedes reservar de nuevo.
+          const cat = classifyReservation(r)
+          if (cat !== 'upcoming' && cat !== 'active') return false
 
           const existingStart = getTimeMinutes(r.HoraInicio)
           const existingEnd = getTimeMinutes(r.HoraFin)
@@ -140,7 +153,7 @@ export default function BookingSidebar({
     return () => {
       cancelled = true
     }
-  }, [user?.empleadoId, date, entryTime, exitTime])
+  }, [user?.empleadoId, date, entryTime, exitTime, reserveFor])
 
   // Notificamos al padre para que pueda mostrar el banner sobre el mapa.
   useEffect(() => {
@@ -169,9 +182,6 @@ export default function BookingSidebar({
       cancelled = true
     }
   }, [])
-  const [reserveFor, setReserveFor] = useState('me')
-  const [visitor, setVisitor] = useState({ nombre: '', correo: '', empresa: '' })
-  const [timeError, setTimeError] = useState('')
 
   // Notify parent whenever filters change so it can re-fetch availability
   useEffect(() => {
