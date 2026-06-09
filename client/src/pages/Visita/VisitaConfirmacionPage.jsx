@@ -123,17 +123,17 @@ export default function VisitaConfirmacionPage() {
 
             {/* Card */}
             <div className="w-full max-w-[720px] rounded-2xl p-6 sm:p-8 flex flex-col gap-6" style={{ background: '#1a0033' }}>
-              <span className="font-mono text-[10px] font-semibold text-[#A100FF]">// detalles_de_visita</span>
+              <span className="font-mono text-[10px] font-semibold text-[#A100FF]">Detalles de visita</span>
 
               <div className="flex flex-col md:flex-row gap-8">
                 {/* Detalles */}
                 <div className="flex-1 flex flex-col gap-4">
-                  <Row icon="👤" label="Anfitrión:" value={data?.AnfitrionNombre || '—'} />
-                  <Row icon="📍" label="Ubicación:" value={`ATC Monterrey${data?.PisoNombre ? ` — ${data.PisoNombre}` : ''}`} />
-                  <Row icon="📅" label="Fecha:" value={fmtFecha(data?.Fecha)} />
-                  <Row icon="🕒" label="Horario:" value={`${fmtHora(data?.HoraInicio)} — ${fmtHora(data?.HoraFin)}`} />
-                  {data?.Empresa && <Row icon="💼" label="Empresa:" value={data.Empresa} />}
-                  {data?.EspacioNombre && <Row icon="🪑" label="Espacio:" value={data.EspacioNombre} />}
+                  <Row icon="" label="Anfitrión:" value={data?.AnfitrionNombre || '—'} />
+                  <Row icon="" label="Ubicación:" value={`ATC Monterrey${data?.PisoNombre ? ` — ${data.PisoNombre}` : ''}`} />
+                  <Row icon="" label="Fecha:" value={fmtFecha(data?.Fecha)} />
+                  <Row icon="" label="Horario:" value={`${fmtHora(data?.HoraInicio)} — ${fmtHora(data?.HoraFin)}`} />
+                  {data?.Empresa && <Row icon="" label="Empresa:" value={data.Empresa} />}
+                  {data?.EspacioNombre && <Row icon="" label="Espacio:" value={data.EspacioNombre} />}
                 </div>
 
                 {/* Estacionamiento */}

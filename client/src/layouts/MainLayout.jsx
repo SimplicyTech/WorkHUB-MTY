@@ -14,7 +14,8 @@ export default function MainLayout() {
         <Outlet />
       </main>
       <Footer />
-      {user && <VoiceReservationAssistant />}
+      {/* El rol Guardia (rolId 5) solo escanea QR: no debe ver el chatbot. */}
+      {user && user.rolId !== 5 && <VoiceReservationAssistant />}
     </div>
   )
 }

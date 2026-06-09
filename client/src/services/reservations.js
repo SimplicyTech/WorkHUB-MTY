@@ -16,8 +16,12 @@ export function getEmpleadoTransacciones(empleadoId) {
   return apiRequest(`/empleados/${empleadoId}/transacciones`)
 }
 
-export function getEmpleadoDisponibilidadFecha(empleadoId, fecha) {
-  return apiRequest(`/empleados/${empleadoId}/disponibilidad-fecha?fecha=${fecha}`)
+export function getEmpleadoDisponibilidadFecha(empleadoId, fecha, horaInicio, horaFin) {
+  let url = `/empleados/${empleadoId}/disponibilidad-fecha?fecha=${fecha}`
+  if (horaInicio && horaFin) {
+    url += `&horaInicio=${horaInicio}&horaFin=${horaFin}`
+  }
+  return apiRequest(url)
 }
 
 export async function createEmpleado({ Nombre, Correo, Contrasena, RolID, NivelID }) {

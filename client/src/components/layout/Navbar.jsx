@@ -173,12 +173,6 @@ export default function Navbar() {
 
                     <div className="h-px bg-surface-badge w-full" />
 
-                    <button className="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-badge transition-colors cursor-pointer bg-transparent border-none w-full text-left">
-                      <span className="font-mono text-xs text-white">
-                        Configuración
-                      </span>
-                    </button>
-
                     <button
                       onClick={() => {
                         logout()

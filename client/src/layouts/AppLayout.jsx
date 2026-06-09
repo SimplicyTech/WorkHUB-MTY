@@ -10,8 +10,10 @@ export default function AppLayout() {
     return <Navigate to="/login" replace />
   }
 
+  // El rol Guardia (rolId 5) solo escanea QR: no debe ver el chatbot.
+  const esGuardia = user.rolId === 5
   const hideAssistant =
-    location.pathname.toLowerCase() === '/ReadQR'
+    esGuardia || location.pathname.toLowerCase() === '/readqr'
 
   return (
     <div className="min-h-dvh flex flex-col bg-surface">
@@ -24,7 +26,6 @@ export default function AppLayout() {
       {!hideAssistant && (
         <VoiceReservationAssistant />
       )}
-      <VoiceReservationAssistant />
     </div>
   )
 }
