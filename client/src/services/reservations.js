@@ -1,5 +1,6 @@
 import { apiRequest } from './api'
 import { notifyDashboardChanged } from './dashboard'
+import { hashPassword } from './auth'
 
 // ── Empleados (Admin) ─────────────────────────────────────
 
@@ -19,10 +20,11 @@ export function getEmpleadoDisponibilidadFecha(empleadoId, fecha) {
   return apiRequest(`/empleados/${empleadoId}/disponibilidad-fecha?fecha=${fecha}`)
 }
 
-export function createEmpleado({ Nombre, Correo, Contrasena, RolID, NivelID }) {
+export async function createEmpleado({ Nombre, Correo, Contrasena, RolID, NivelID }) {
+  const hashed = await hashPassword(Contrasena)
   return apiRequest('/empleados', {
     method: 'POST',
-    body: { Nombre, Correo, Contrasena, RolID, NivelID },
+    body: { Nombre, Correo, Contrasena: hashed, RolID, NivelID },
   })
 }
 
