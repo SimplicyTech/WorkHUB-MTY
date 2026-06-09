@@ -1087,44 +1087,61 @@ function VisitasView() {
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
   const [filtroEstatus, setFiltroEstatus] = useState('todos')
-  const [filtroFecha, setFiltroFecha] = useState(new Date().toISOString().slice(0, 10))
+  const [filtroFecha, setFiltroFecha] = useState('')
 
   useEffect(() => {
     getAllReservaciones()
-      .then((res) => setReservaciones(res.data || []))
+      .then((res) => {
+        const sorted = [...(res.data || [])].sort((a, b) => Number(b.ReservacionID) - Number(a.ReservacionID))
+        setReservaciones(sorted)
+      })
       .catch(() => setError('No se pudo cargar las reservaciones'))
       .finally(() => setLoading(false))
   }, [])
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = toLocalDateInput(new Date())
+  const isCanceled = (r) => String(r.EstatusNombre || '').toLowerCase() === 'cancelada'
+  const getFechaSql = (fecha) => fecha ? String(fecha).slice(0, 10) : ''
 
   const hoy = reservaciones.filter((r) => {
-    const fecha = r.Fecha ? String(r.Fecha).slice(0, 10) : ''
+    const fecha = getFechaSql(r.Fecha)
     return fecha === today
   })
 
-  const programadas = hoy.length
+  const programadas = hoy.filter((r) => !isCanceled(r)).length
   const activas = hoy.filter((r) => r.EstatusNombre === 'Activa').length
   const proximos = reservaciones.filter((r) => {
-    const fecha = r.Fecha ? String(r.Fecha).slice(0, 10) : ''
-    return fecha > today
+    const fecha = getFechaSql(r.Fecha)
+    return fecha > today && !isCanceled(r)
   }).length
+  const estatusOptions = [...new Set(reservaciones.map((r) => r.EstatusNombre).filter(Boolean))]
 
-  const filtradas = reservaciones.filter((r) => {
-    const fechaR = r.Fecha ? String(r.Fecha).slice(0, 10) : ''
-    const nombre = (r.EmpleadoNombre || '').toLowerCase()
-    const espacio = (r.EspacioNombre || '').toLowerCase()
-    const coincide = nombre.includes(search.toLowerCase()) || espacio.includes(search.toLowerCase())
-    const coincideEstatus = filtroEstatus === 'todos' || (r.EstatusNombre || '') === filtroEstatus
-    const coincideFecha = !filtroFecha || fechaR === filtroFecha
-    return coincide && coincideEstatus && coincideFecha
-  })
+  const filtradas = reservaciones
+    .filter((r) => {
+      const fechaR = getFechaSql(r.Fecha)
+      const term = search.trim().toLowerCase()
+      const id = `r-${r.ReservacionID}`.toLowerCase()
+      const nombre = (r.EmpleadoNombre || '').toLowerCase()
+      const espacio = (r.EspacioNombre || '').toLowerCase()
+      const piso = (r.PisoNombre || '').toLowerCase()
+      const estacionamiento = (r.EstacionamientoNombre || '').toLowerCase()
+      const coincide = !term ||
+        id.includes(term) ||
+        nombre.includes(term) ||
+        espacio.includes(term) ||
+        piso.includes(term) ||
+        estacionamiento.includes(term)
+      const coincideEstatus = filtroEstatus === 'todos' || (r.EstatusNombre || '') === filtroEstatus
+      const coincideFecha = !filtroFecha || fechaR === filtroFecha
+      return coincide && coincideEstatus && coincideFecha
+    })
+    .sort((a, b) => Number(b.ReservacionID) - Number(a.ReservacionID))
 
   const fmtHora = (h) => (h ? String(h).slice(0, 5) : '—')
   const fmtFecha = (f) => {
     if (!f) return '—'
-    const d = new Date(f)
-    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`
+    const [year, month, day] = String(f).slice(0, 10).split('-')
+    return `${day}/${month}/${String(year).slice(2)}`
   }
 
   return (
@@ -1138,7 +1155,7 @@ function VisitasView() {
 
       <section className="admin-visitas-stats">
         <article className="admin-visitas-stat">
-          <span className="admin-visitas-stat__label">Programadas para Hoy</span>
+          <span className="admin-visitas-stat__label">Reservaciones del dia</span>
           <strong className="admin-visitas-stat__value" style={{ color: '#f5efff' }}>{loading ? '…' : programadas}</strong>
         </article>
         <article className="admin-visitas-stat">
@@ -1156,7 +1173,7 @@ function VisitasView() {
           <AdminIcon name="search" />
           <input
             type="search"
-            placeholder="Buscar por empleado o espacio..."
+            placeholder="Buscar por ID, empleado, espacio o piso..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -1169,8 +1186,9 @@ function VisitasView() {
         />
         <select className="admin-select" value={filtroEstatus} onChange={(e) => setFiltroEstatus(e.target.value)}>
           <option value="todos">Estado: Todos</option>
-          <option value="Activa">Activa</option>
-          <option value="Cancelada">Cancelada</option>
+          {estatusOptions.map((estatus) => (
+            <option key={estatus} value={estatus}>{estatus}</option>
+          ))}
         </select>
       </section>
 
@@ -1196,7 +1214,7 @@ function VisitasView() {
                   <tr key={r.ReservacionID}>
                     <td className="admin-table__id">R-{r.ReservacionID}</td>
                     <td>{r.EmpleadoNombre || '—'}</td>
-                    <td>{r.EspacioNombre || '—'}</td>
+                    <td>{r.EspacioNombre || r.EstacionamientoNombre || '—'}</td>
                     <td>{fmtFecha(r.Fecha)}</td>
                     <td className="admin-table__mint">{fmtHora(r.HoraInicio)}</td>
                     <td>{fmtHora(r.HoraFin)}</td>
@@ -1213,7 +1231,7 @@ function VisitasView() {
                   </tr>
                 ))}
                 {filtradas.length === 0 && (
-                  <tr><td colSpan={7} className="admin-table-msg">Sin reservaciones para hoy</td></tr>
+                  <tr><td colSpan={7} className="admin-table-msg">Sin reservaciones con esos filtros</td></tr>
                 )}
               </tbody>
             </table>
@@ -1221,7 +1239,7 @@ function VisitasView() {
         )}
         {!loading && !error && (
           <div className="admin-pagination">
-            <span>Mostrando {filtradas.length} de {hoy.length} reservaciones hoy</span>
+            <span>Mostrando {filtradas.length} de {reservaciones.length} reservaciones ordenadas por ID</span>
           </div>
         )}
       </section>
