@@ -10,6 +10,9 @@ export default function AppLayout() {
     return <Navigate to="/login" replace />
   }
 
+  const hideAssistant =
+    location.pathname.toLowerCase() === '/ReadQR'
+
   return (
     <div className="min-h-dvh flex flex-col bg-surface">
       <Navbar />
@@ -18,6 +21,9 @@ export default function AppLayout() {
       <main className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden">
         <Outlet />
       </main>
+      {!hideAssistant && (
+        <VoiceReservationAssistant />
+      )}
       <VoiceReservationAssistant />
     </div>
   )
