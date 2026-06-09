@@ -12,7 +12,6 @@ import { useGeminiLive } from '../../hooks/useGeminiLive'
 const SUGGESTIONS = [
   'Reservar un escritorio para hoy',
   'Quiero un lugar mañana en la mañana',
-  'Necesito estacionamiento',
 ]
 
 function nowTime() {
