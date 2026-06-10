@@ -972,7 +972,7 @@ function UsuariosView() {
 
   // Modal state
   const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState({ Nombre: '', Correo: '', Contrasena: '', RolID: '3', NivelID: '1' })
+  const [form, setForm] = useState({ Nombre: '', Correo: '', Contrasena: '', RolID: '1', NivelID: '1' })
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState(null)
   const [userToDelete, setUserToDelete] = useState(null)
@@ -994,6 +994,10 @@ function UsuariosView() {
 
   // Nombre del rol leído de la BD (tabla ROL), no hardcodeado.
   const rolNombre = (rolId) => roles.find((r) => Number(r.RolID) === Number(rolId))?.Nombre || `Rol ${rolId}`
+
+  // "Visitante" existe en la tabla ROL pero no es un rol de usuario interno:
+  // no se ofrece ni para filtrar ni para asignar al crear usuarios.
+  const rolesAsignables = roles.filter((r) => !/visitante/i.test(String(r.Nombre)))
 
   const filtrados = empleados.filter((u) => {
     const nombre = (u.Nombre || '').toLowerCase()
@@ -1027,7 +1031,7 @@ function UsuariosView() {
     try {
       await createEmpleado({ ...form, RolID: Number(form.RolID), NivelID: Number(form.NivelID) })
       setShowModal(false)
-      setForm({ Nombre: '', Correo: '', Contrasena: '', RolID: '3', NivelID: '1' })
+      setForm({ Nombre: '', Correo: '', Contrasena: '', RolID: '1', NivelID: '1' })
       cargarEmpleados()
     } catch (err) {
       setFormError(err?.error || 'Error al crear el usuario')
@@ -1088,7 +1092,7 @@ function UsuariosView() {
         </label>
         <select className="admin-select" value={filtroRol} onChange={(e) => setFiltroRol(e.target.value)}>
           <option value="todos">Rol: Todos</option>
-          {roles.map((r) => (
+          {rolesAsignables.map((r) => (
             <option key={r.RolID} value={String(r.RolID)}>{r.Nombre}</option>
           ))}
         </select>
@@ -1183,7 +1187,7 @@ function UsuariosView() {
               <label className="admin-modal__label">
                 Rol
                 <select className="admin-modal__input admin-modal__select" name="RolID" value={form.RolID} onChange={handleFormChange}>
-                  {roles.map((r) => (
+                  {rolesAsignables.map((r) => (
                     <option key={r.RolID} value={String(r.RolID)}>{r.Nombre}</option>
                   ))}
                 </select>
