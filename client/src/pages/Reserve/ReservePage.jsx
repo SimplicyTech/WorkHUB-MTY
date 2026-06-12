@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react'
+import { useState, useCallback, useRef, useMemo, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BookingSidebar from '../../components/reserve/BookingSidebar'
 import FloorMap from '../../components/reserve/FloorMap'
@@ -218,6 +218,21 @@ export default function ReservePage() {
     navigate('/estacionamiento', { state: baseState })
   }
 
+  // Carga dinámica de `FloorMap<PisoID>.jsx` cuando existe.
+  // Fallback: FloorMap9 (Piso 9 histórico), FloorMapPB, FloorMapMZ o FloorMap default.
+  const LazyFloorMap = useMemo(() => {
+    if (!floor) return null
+    return lazy(() =>
+      import(`../../components/reserve/FloorMap${floor}.jsx`).catch(() => {
+        if (floor === '1') return import('../../components/reserve/FloorMap9.jsx')
+        if (floor === '2') return import('../../components/reserve/FloorMap.jsx')
+        if (floor === '3') return import('../../components/reserve/FloorMapPB.jsx')
+        if (floor === '4') return import('../../components/reserve/FloorMapMZ.jsx')
+        return import('../../components/reserve/FloorMap.jsx')
+      })
+    )
+  }, [floor])
+
   return (
     <div className="flex min-h-[calc(100dvh-64px)] flex-col lg:h-[calc(100dvh-64px)] lg:flex-row">
       <BookingSidebar
@@ -241,51 +256,27 @@ export default function ReservePage() {
         </div>
       ) : (
         <div className="relative flex-1 flex overflow-hidden">
-          {/**
-           * Dynamically load `FloorMap<PisoID>.jsx` when available.
-           * Fallback order:
-           *  - FloorMap{floor}.jsx (dynamic)
-           *  - FloorMap9.jsx (for historical Piso 9 mapping)
-           *  - FloorMap.jsx (default)
-           */}
-          {(() => {
-            const LazyComp = useMemo(() => {
-              if (!floor) return null
-              return lazy(() =>
-                import(`../../components/reserve/FloorMap${floor}.jsx`).catch(() => {
-                  if (floor === '1') return import('../../components/reserve/FloorMap9.jsx')
-                  if (floor === '2') return import('../../components/reserve/FloorMap.jsx')
-                  if (floor === '3') return import('../../components/reserve/FloorMapPB.jsx')
-                  if (floor === '4') return import('../../components/reserve/FloorMapMZ.jsx')
-                  return import('../../components/reserve/FloorMap.jsx')
-                })
-              )
-            }, [floor])
-
-            return (
-              <Suspense fallback={<div className="flex-1 flex items-center justify-center">Cargando mapa...</div>}>
-                {LazyComp ? (
-                  <LazyComp
-                    desks={deskData}
-                    salas={salasData}
-                    rooms={fallbackRooms}
-                    selectedDesk={selectedDesk}
-                    onSelectDesk={fechaBloqueada ? () => {} : handleSelectDesk}
-                    loading={loading}
-                  />
-                ) : (
-                  <FloorMap
-                    desks={deskData}
-                    salas={salasData}
-                    rooms={fallbackRooms}
-                    selectedDesk={selectedDesk}
-                    onSelectDesk={fechaBloqueada ? () => {} : handleSelectDesk}
-                    loading={loading}
-                  />
-                )}
-              </Suspense>
-            )
-          })()}
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center">Cargando mapa...</div>}>
+            {LazyFloorMap ? (
+              <LazyFloorMap
+                desks={deskData}
+                salas={salasData}
+                rooms={fallbackRooms}
+                selectedDesk={selectedDesk}
+                onSelectDesk={fechaBloqueada ? () => {} : handleSelectDesk}
+                loading={loading}
+              />
+            ) : (
+              <FloorMap
+                desks={deskData}
+                salas={salasData}
+                rooms={fallbackRooms}
+                selectedDesk={selectedDesk}
+                onSelectDesk={fechaBloqueada ? () => {} : handleSelectDesk}
+                loading={loading}
+              />
+            )}
+          </Suspense>
           {fechaBloqueada && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 px-6">
               <div

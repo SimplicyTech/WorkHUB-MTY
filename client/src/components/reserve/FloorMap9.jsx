@@ -119,8 +119,6 @@ function SelectableRoom({ sala, name, code, style, selectedDesk, onSelect }) {
 /* ── Main component ────────────────────────── */
 
 export default function FloorMap9({ desks, salas = [], rooms, selectedDesk, onSelectDesk, loading }) {
-  const byCluster = (c) => desks.filter((d) => d.cluster === c)
-
   const findRoom = (id) => rooms.find((r) => r.id === id)
   // Localiza una sala del backend por el código embebido en su Nombre
   // (ej. "Sierra Madre ICSJ-3040" matchea "ICSJ-3040").

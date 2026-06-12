@@ -43,7 +43,6 @@ export default function ConfirmationPage() {
     entryTime = '09:00',
     exitTime = '18:00',
     parking = true,
-    reserveFor,
   } = location.state || {}
 
   const [reservationData, setReservationData] = useState(null)

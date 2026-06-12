@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { getReservacionById, cancelReservacion, checkInReservacion, checkOutReservacion } from '../../services/reservations'
+import { getReservacionById, cancelReservacion, checkOutReservacion } from '../../services/reservations'
 import Qrgenerator from '../../components/Confirmation/Qrgenerator'
-import { GRACE_MINUTES, classifyReservation } from '../../utils/reservationStatus'
+import { GRACE_MINUTES } from '../../utils/reservationStatus'
 
 function parseLocalDate(fecha) {
   if (!fecha) return null
@@ -69,7 +69,6 @@ export default function ReservationDetailPage() {
 
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [cancelling, setCancelling] = useState(false)
-  const [checkingIn, setCheckingIn] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
 
   const [now, setNow] = useState(() => new Date())
@@ -111,12 +110,10 @@ export default function ReservationDetailPage() {
     [reservation?.Fecha, reservation?.HoraInicio]
   )
   const estatusNombreLower = (reservation?.EstatusNombre || '').toLowerCase().trim()
-  const isCancelled = estatusNombreLower === 'cancelada'
   const endDate = useMemo(
     () => buildEndDate(reservation?.Fecha, reservation?.HoraFin),
     [reservation?.Fecha, reservation?.HoraFin]
   )
-  const isPast = !!(endDate && now > endDate)
 
   const graceEndsAt = useMemo(
     () => (startDate ? new Date(startDate.getTime() + GRACE_MINUTES * 60_000) : null),
@@ -206,26 +203,6 @@ export default function ReservationDetailPage() {
       alert(err?.error || 'Error al cancelar la reservación')
       setCancelling(false)
       setShowCancelConfirm(false)
-    }
-  }
-
-  const handleCheckIn = async () => {
-    setCheckingIn(true)
-    try {
-      const res = await checkInReservacion(reservation.ReservacionID)
-      const newEstatusId = res?.data?.EstatusID
-      const horaEntrada = res?.data?.HoraEntrada
-        || new Date().toISOString().slice(0, 19).replace('T', ' ')
-      setReservation((prev) => prev ? {
-        ...prev,
-        EstatusNombre: 'Activa',
-        EstatusID: newEstatusId ?? prev.EstatusID,
-        CheckInHoraEntrada: prev.CheckInHoraEntrada || horaEntrada,
-      } : prev)
-    } catch (err) {
-      alert(err?.error || 'Error al hacer check-in')
-    } finally {
-      setCheckingIn(false)
     }
   }
 

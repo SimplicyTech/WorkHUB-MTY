@@ -119,8 +119,6 @@ function SelectableRoom({ sala, name, code, style, selectedDesk, onSelect }) {
 /* ── Main component ────────────────────────── */
 
 export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onSelectDesk, loading }) {
-  const byCluster = (c) => desks.filter((d) => d.cluster === c)
-
   const findRoom = (id) => rooms.find((r) => r.id === id)
   // Localiza una sala del backend por el código embebido en su Nombre
   // (ej. "Sierra Madre ICSJ-3040" matchea "ICSJ-3040").
@@ -197,7 +195,6 @@ export default function FloorMapPB({ desks, salas = [], rooms, selectedDesk, onS
               'MZ74_MZ81': { left: 880, top: 530, cols: 4 },
               'MZ50_MZ57': { left: 400, top: 610, cols: 4 },
               'MZ66_MZ73': { left: 640, top: 610, cols: 4 },
-              'MZ74_MZ81': { left: 880, top: 530, cols: 4 },
               'MZ82_MZ85': { left: 990, top: 400, cols: 2 },
               'MZ86_MZ93': { left: 880, top: 300, cols: 4 },
               'MZ94_MZ98': { left: 840, top: 200, cols: 5 },
