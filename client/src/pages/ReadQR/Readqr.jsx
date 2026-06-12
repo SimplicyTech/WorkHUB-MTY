@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Html5Qrcode } from 'html5-qrcode'
 
-import { useAuth } from '../../context/useAuth'
 import { useLectura } from '../../context/useLecturaQr'
 
 const QR_DIV_ID = 'qr-reader'
@@ -30,11 +29,8 @@ function parseQR(raw) {
 }
 
 export default function ReadQRPage() {
-  const { user } = useAuth()
-
   const {
     scanCodigo,
-    success,
     error,
     setError,
     setSuccess
@@ -170,14 +166,6 @@ export default function ReadQRPage() {
     setSuccess('')
 
     didScan.current = false
-  }
-
-  const restartScanner = async () => {
-    await reset()
-
-    setTimeout(() => {
-      start()
-    }, 200)
   }
 
   return (

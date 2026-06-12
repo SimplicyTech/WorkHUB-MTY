@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { lecturaqrContext } from './lecturaqr-context'
+import { lecturaqrContext as LecturaQrContext } from './lecturaqr-context'
 import { scanCodigoReservacion } from '../services/lectura'
 
 export function LecturaProvider({ children }) {
@@ -41,7 +41,7 @@ export function LecturaProvider({ children }) {
   }
 
   return (
-    <lecturaqrContext.Provider
+    <LecturaQrContext.Provider
       value={{
         loading,
         success,
@@ -52,6 +52,6 @@ export function LecturaProvider({ children }) {
       }}
     >
       {children}
-    </lecturaqrContext.Provider>
+    </LecturaQrContext.Provider>
   )
 }

@@ -733,7 +733,7 @@ function EspaciosView() {
         const pisoFuncional = resPisos.data.find((p) => p.PisoID === PISO_ADMIN_FUNCIONAL_ID)
         setForm(f => ({ ...f, PisoID: String(pisoFuncional?.PisoID || resPisos.data[0].PisoID) }))
       }
-    } catch (err) {
+    } catch {
       setError('No se pudieron cargar los pisos')
     } finally {
       setLoadingPisos(false)
@@ -750,7 +750,7 @@ function EspaciosView() {
     try {
       const resEspacios = await getAllEspacios(pisoId)
       setEspacios(resEspacios.data || [])
-    } catch (err) {
+    } catch {
       setError('No se pudieron cargar los espacios')
     } finally {
       setLoadingEspacios(false)
@@ -1850,6 +1850,7 @@ export default function AdminDashboardPage() {
   const { user } = useAuth()
   const { dashboard, loading, error } = useDashboard()
   const [selectedDashboardFloorId, setSelectedDashboardFloorId] = useState('')
+  const navigate = useNavigate()
 
   useEffect(() => {
     getRoles().then((res) => setRoles(res.data || [])).catch(() => {})
@@ -1872,7 +1873,6 @@ export default function AdminDashboardPage() {
     return <Navigate to="/login" replace />
   }
 
-  const isBackendConnected = Boolean(dashboard) && !error
   const hasBackendData = Boolean(dashboard?.hasBackendData)
 
   const dashboardStats = dashboard?.stats
@@ -1967,7 +1967,6 @@ export default function AdminDashboardPage() {
         : 'Conectado - sin registros'
   const liveClassName = `admin-main__live ${error ? 'is-error' : !hasBackendData && !loading ? 'is-warning' : ''}`
 
-  const navigate = useNavigate()
   return (
     <div className="admin-dashboard">
       <aside className="admin-sidebar">
